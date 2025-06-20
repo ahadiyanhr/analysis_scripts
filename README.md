@@ -10,10 +10,46 @@ This repository provides macros and scripts to support the analysis of pressure/
 - Clone the `analysis_scripts` repository from GitHub into the **main root** of the experiment folder.
 - Run `create_project_folders.bat` from within the `analysis_scripts` folder to generate all required folders and subfolders as below:
 
+## 📁 Project Folder Structure
+
+```
 YourExperimentProject/
 ├── raw_data/                 # Original, untouched raw data (images, sensor data)
 │   ├── images/
 │   └── sensor_readings/
+│
+├── processed_data/           # Final, polished outputs of processing (e.g., CSVs of measurements, analysis reports)
+│
+├── processed_images/         # Specific image-based outputs (masks, cropped, overlays)
+│   ├── masks/                # For grain masks, segmentation masks, etc.
+│   │   ├── grain_masks/
+│   │   └── cell_masks/
+│   ├── cropped_regions/      # For images that have been cropped
+│   └── overlays/             # For images with timestamps, ROIs, or other data overlaid
+│       └── timestamped_images/
+│
+├── analysis_scripts/         # Your Fiji macros, MATLAB functions/scripts
+│
+├── config/                   # Settings, thresholds, specific paths, instrument settings
+│   ├── analysis_parameters.json
+│   ├── sensor_thresholds.csv
+│   └── camera_calibration.yaml
+│
+├── lookup_tables/            # Reference data for mapping or classification
+│   └── material_properties.csv
+│
+├── intermediates/            # Data generated during processing, used by subsequent steps, but not final outputs
+│   ├── feature_vectors/      # e.g., features extracted from images before classification
+│   └── normalized_readings/  # e.g., sensor data after normalization
+│
+├── resources/                # Large supporting files (e.g., pre-trained models, specific templates)
+│   └── pre_trained_model.h5
+│
+├── logs/                     # Log files from script execution
+│
+└── docs/                     # Project documentation, READMEs, notes
+```
+/
 
 - Save all `test_report` files in the `docs/` folder.
 
