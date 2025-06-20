@@ -1,153 +1,130 @@
-📊 Data Analysis Protocol for Microfluidic Experiments
-This repository contains scripts and macros to pre-process image and sensor data from microfluidic experiments involving biofilms, GFP/FRET fluorescence, and micromodel flow visualization. Follow the instructions below to set up your project, import raw data, and run the analysis pipeline using Fiji (ImageJ) and MATLAB.
+# 📊 Data Analysis Protocol for Microfluidic Experiments
 
-🗂 Folder Structure Setup
-Clone this repository into the main root of your experiment directory.
+This repository provides macros and scripts to support the analysis of pressure/flow sensor data and microscopy images (Brightfield, GFP, FRET) from micromodel experiments. The protocol uses Fiji (ImageJ) and MATLAB for preprocessing, segmentation, and alignment.
 
-Run the batch file:
+---
 
-bash
-Copy
-Edit
-create_project_folders.bat
-This will generate all necessary folders and subfolders.
+## **Pre-processing**
 
-Place any test_report files in the docs/ folder.
+### **Folder Structure Setup**
+- Clone the `analysis_scripts` repository from GitHub into the **main root** of the experiment folder.
+- Run `create_project_folders.bat` from within the `analysis_scripts` folder to generate all required folders and subfolders.
+- Save all `test_report` files in the `docs/` folder.
 
-📥 Import Raw Data
-🔧 Sensor Readings
-Copy .txt files for pressure and flow sensors into:
+---
 
-bash
-Copy
-Edit
-raw_data/sensor_readings/
-Use the following naming conventions:
+## **Copy Sensor Data**
+- Place the pressure and flow sensor `.txt` files in:
+  ```
+  raw_data/sensor_readings/
+  ```
+- Use the following filename formats:
+  - *Constant pressure experiments:* `pconst_ob1.txt`, `pconst_reader.txt`
+  - *Constant flow rate experiments:* `qconst_ob1.txt`, `qconst_reader.txt`
 
-Constant Pressure: pconst_ob1.txt, pconst_reader.txt
+---
 
-Constant Flow Rate: qconst_ob1.txt, qconst_reader.txt
+## **Copy Experimental Images**
+- Copy the Leica imaging project file to:
+  ```
+  raw_data/images/
+  ```
+- Export all image channels (Brightfield, GFP, FRET) from **LAS X software** into:
+  ```
+  raw_data/images/tif_images/
+  ```
+  as `.tif` files.
+- File naming convention (done automatically by LAS X):
+  - `..._ch00.tif` → Brightfield
+  - `..._ch01.tif` → GFP
+  - `..._ch02.tif` → FRET
 
-🖼 Imaging Files
-Copy the Leica imaging project file into:
+---
 
-bash
-Copy
-Edit
-raw_data/images/
-From LAS X software, export images (Brightfield, GFP, FRET) into:
+## **Create Imaging Timestamp Log**
+- Create an Excel file in the `logs/` folder named:
+  ```
+  imaging_timestamp.xlsx
+  ```
+- Include the following columns:
+  - `Image#`
+  - `Absolute Time`
+  - `Date`
+- The first row should be:
+  ```
+  Image# = 0
+  ```
+  marking the beginning of the experiment.
 
-bash
-Copy
-Edit
-raw_data/images/tif_images/
-Use .tif format. LAS X will automatically name files like:
+---
 
-bash
-Copy
-Edit
-..._ch00.tif  # Brightfield
-..._ch01.tif  # GFP
-..._ch02.tif  # FRET
-🕒 Create Timestamp Log
-Create an Excel file:
+## **ROI Creation (Region of Interest)**
+- Open **Fiji/ImageJ**
+- Load the first Brightfield image from:
+  ```
+  raw_data/images/tif_images/
+  ```
+- Draw a rectangular ROI over the micromodel area.
+- In the ROI Manager:
+  - Add the selection
+  - Rotate via `More > Rotate`
+  - Align corners to fit the micromodel edges
+  - Add again to the ROI Manager
+- Save as:
+  ```
+  logs/crop.roi
+  ```
 
-bash
-Copy
-Edit
-logs/imaging_timestamp.xlsx
-Include the following columns:
+---
 
-mathematica
-Copy
-Edit
-Image# | Absolute Time | Date
-First row must be:
+## **Process Images**
 
-bash
-Copy
-Edit
-Image# = 0
-🟦 ROI Creation
-Open Fiji/ImageJ.
+### **Image Alignment and Cropping (Brightfield Only)**
+- Open and run the macro:
+  ```
+  image_alignment.ijm
+  ```
+- Set `channelID = 'ch00'` for Brightfield.
+> *Note:* Do **not** use this for GFP or FRET. These will be aligned later using MATLAB.
+- Save the transformation log as:
+  ```
+  logs/transform.txt
+  ```
 
-Load the first Brightfield image from:
+---
 
-bash
-Copy
-Edit
-raw_data/images/tif_images/
-Draw a rectangle covering the micromodel working section.
+### **Mask Refinement**
+- Open the following two files as a stack in Fiji:
+  - `mask.tif`
+  - `t00_ch00.tif` (from `processed_images/modified_images/`)
+- Align using SIFT and crop to the original image size.
+- Apply outlier removal:
+  ```
+  Process > Noise > Remove Outliers
+  Radius: 7.5 | Threshold: 75 | Outliers: Bright
+  ```
+- Save the result as:
+  ```
+  processed_images/grain_mask/mask.tif
+  ```
 
-In the ROI Manager:
+---
 
-Add the selection
+### **Biomass Segmentation**
+- Open and run:
+  ```
+  biomass_segmentation.ijm
+  ```
+- Set thresholding parameters and run the macro.
+- Results are saved in:
+  ```
+  processed_images/biomass_images_*/
+  ```
+- Threshold settings saved as:
+  ```
+  thresholding_parameters.txt
+  ```
 
-Use More > Rotate to align
+---
 
-Adjust corners to match micromodel edges
-
-Add it again
-
-Save the ROI as:
-
-bash
-Copy
-Edit
-logs/crop.roi
-🧰 Image Processing Pipeline
-🔁 Alignment and Cropping
-Open image_alignment.ijm in Fiji.
-
-Set channelID = 'ch00' (Brightfield).
-
-⚠️ GFP and FRET channels must be aligned later in MATLAB.
-
-Save transformation log as:
-
-bash
-Copy
-Edit
-logs/transform.txt
-🎭 Mask Refinement
-Open mask.tif and t00_ch00.tif as a stack:
-
-bash
-Copy
-Edit
-processed_images/modified_images/
-Use SIFT for alignment, then crop to match t00_ch00.tif.
-
-Remove noise:
-
-yaml
-Copy
-Edit
-Process > Noise > Remove Outliers
-Radius: 7.5 | Threshold: 75 | Outliers: Bright
-Save refined mask as:
-
-bash
-Copy
-Edit
-processed_images/grain_mask/mask.tif
-🦠 Biomass Segmentation
-Run biomass_segmentation.ijm in Fiji.
-
-Set thresholding parameters and run.
-
-Outputs are saved in:
-
-bash
-Copy
-Edit
-processed_images/biomass_images_*/
-Thresholding settings saved as:
-
-Copy
-Edit
-thresholding_parameters.txt
-🧾 Notes
-GFP and FRET alignment should be performed using MATLAB scripts, not Fiji.
-
-Ensure file and folder names match the expected structure before running macros.
+> For alignment of GFP/FRET channels, use MATLAB scripts instead of Fiji.
