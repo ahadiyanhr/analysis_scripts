@@ -8,7 +8,13 @@ This repository provides macros and scripts to support the analysis of pressure/
 
 ### **Folder Structure Setup**
 - Clone the `analysis_scripts` repository from GitHub into the **main root** of the experiment folder.
-- Run `create_project_folders.bat` from within the `analysis_scripts` folder to generate all required folders and subfolders.
+- Run `create_project_folders.bat` from within the `analysis_scripts` folder to generate all required folders and subfolders as below:
+
+YourExperimentProject/
+├── raw_data/                 # Original, untouched raw data (images, sensor data)
+│   ├── images/
+│   └── sensor_readings/
+
 - Save all `test_report` files in the `docs/` folder.
 
 ---
