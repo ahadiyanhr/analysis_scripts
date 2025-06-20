@@ -8,50 +8,34 @@ This repository provides macros and scripts to support the analysis of pressure/
 
 ### **Folder Structure Setup**
 - Clone the `analysis_scripts` repository from GitHub into the **main root** of the experiment folder.
-- Run `create_project_folders.bat` from within the `analysis_scripts` folder to generate all required folders and subfolders as below:
+- Run `create_project_folders.bat` from within the `analysis_scripts` folder to generate all required folders and subfolders as below.
+- Save all `test_report` files in the `docs/` folder.
 
-## 📁 Project Folder Structure
+📁 Project Folder Structure
 
 ```
-YourExperimentProject/
+MainFolderProject/
 ├── raw_data/                 # Original, untouched raw data (images, sensor data)
 │   ├── images/
 │   └── sensor_readings/
 │
-├── processed_data/           # Final, polished outputs of processing (e.g., CSVs of measurements, analysis reports)
+├── processed_data/           # Final, polished outputs of processing
 │
-├── processed_images/         # Specific image-based outputs (masks, cropped, overlays)
-│   ├── masks/                # For grain masks, segmentation masks, etc.
-│   │   ├── grain_masks/
-│   │   └── cell_masks/
-│   ├── cropped_regions/      # For images that have been cropped
-│   └── overlays/             # For images with timestamps, ROIs, or other data overlaid
-│       └── timestamped_images/
+├── processed_images/         # Specific image-based outputs (masks, cropped)
+│   ├── grain_masks/                # For grain masks, segmentation masks, etc.
+│   ├── modified_images/              # For images that have been cropped and aligned
+│       └── biomass_images_*/         # For biomass occupation images based on parameters
+│        │    └── decay_images/            # For decay images based on parameters
+│        │    └── growth_images/           # For growth images based on parameters
+│        └── thresholding_parameters.txt   # Saved thresholding parameters
 │
-├── analysis_scripts/         # Your Fiji macros, MATLAB functions/scripts
+├── analysis_scripts/         # Fiji macros, MATLAB functions/scripts
 │
-├── config/                   # Settings, thresholds, specific paths, instrument settings
-│   ├── analysis_parameters.json
-│   ├── sensor_thresholds.csv
-│   └── camera_calibration.yaml
-│
-├── lookup_tables/            # Reference data for mapping or classification
-│   └── material_properties.csv
-│
-├── intermediates/            # Data generated during processing, used by subsequent steps, but not final outputs
-│   ├── feature_vectors/      # e.g., features extracted from images before classification
-│   └── normalized_readings/  # e.g., sensor data after normalization
-│
-├── resources/                # Large supporting files (e.g., pre-trained models, specific templates)
-│   └── pre_trained_model.h5
-│
-├── logs/                     # Log files from script execution
+├── logs/                     # Log files (Transforms log, imaging timestamp, and ROI needed for cropping)
 │
 └── docs/                     # Project documentation, READMEs, notes
 ```
 /
-
-- Save all `test_report` files in the `docs/` folder.
 
 ---
 
