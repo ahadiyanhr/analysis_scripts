@@ -4,7 +4,7 @@ This repository provides macros and scripts to support the analysis of pressure/
 
 ---
 
-## **Pre-processing**
+## **Preparation/Pre-processing**
 
 ### **Folder Structure Setup**
 - Clone the **`analysis_scripts`** repository from GitHub into the **main root** of the experiment folder.
@@ -36,7 +36,7 @@ MainFolderProject/
 
 ---
 
-## **Copy Sensor Data**
+### **Copy Sensor Data**
 - Place the pressure and flow sensor **`.txt` files in:
   ```
   raw_data/sensor_readings/
@@ -47,7 +47,7 @@ MainFolderProject/
 
 ---
 
-## **Copy Experimental Images**
+### **Copy Experimental Images**
 - Copy the Leica imaging project file to:
   ```
   raw_data/images/
@@ -64,7 +64,7 @@ MainFolderProject/
 
 ---
 
-## **Create Imaging Timestamp Log**
+### **Create Imaging Timestamp Log**
 - Using `Properties` in **LAS X software**, create an Excel file in the `logs/` folder named:
   ```
   imaging_timestamp.xlsx
@@ -81,7 +81,7 @@ MainFolderProject/
 
 ---
 
-## **ROI Creation (Region of Interest)**
+### **Working Section ROI Creation**
 - Open **Fiji/ImageJ**
 - Load the first Brightfield image from:
   ```
@@ -95,7 +95,26 @@ MainFolderProject/
   - Add again to the ROI Manager
 - Save as:
   ```
-  logs/crop.roi
+  logs/working_area.roi
+  ```
+### **Background Intensity Coordinates Selection**
+To monitor background intensity variations (caused by perturbations such as experimental setup adjustments or lab lighting fluctuations) and ensure they remain within an acceptable range.
+- Open **Fiji/ImageJ**
+- Load the first Brightfield image from:
+  ```
+  raw_data/images/tif_images/
+  ```
+- Draw a rectangular ROI outside of the micromodel and close to the top or bottom edge of the working section.
+- Record the **X** and **Y** coordinates of the **top-left** and **bottom-right** corners of this ROI in an Excel file. Organize it with "TOP_LEFT" and "RIGHT-BOTTOM" as column headers and "X" and "Y" as row headers, like this:
+
+    |            | TOP_LEFT | RIGHT-BOTTOM |
+    | :--------- | :------- | :----------- |
+    | **X** |          |              |
+    | **Y** |          |              |
+
+- Save as:
+  ```
+  logs/int_coordinates.xlsx
   ```
 
 ---
