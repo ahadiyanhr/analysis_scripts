@@ -21,7 +21,7 @@ function rectifyStack(roiPath) {
 	roiList = getFileList(roiFolder);
 	roiPath = "";
 	for (i = 0; i < roiList.length; i++) {
-	    if (endsWith(roiList[i], "crop.roi")) {
+	    if (endsWith(roiList[i], "working_area.roi")) {
 	        roiPath = roiFolder + roiList[i];
 	        break;
 	    }
