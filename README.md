@@ -1,17 +1,15 @@
 # 📊 Data Analysis Protocol for Microfluidic Experiments
 
-This repository provides macros and scripts to support the analysis of pressure/flow sensor data and microscopy images (Brightfield, GFP, FRET) from micromodel experiments. The protocol uses Fiji (ImageJ) and MATLAB for preprocessing, segmentation, and alignment.
+This repository provides macros and scripts to support the analysis of pressure/flow sensor data and microscopy images (Brightfield, GFP, FRET) from microfluidic experiments. The protocol uses Fiji (ImageJ) and MATLAB for processing the data.
 
 ---
 
 ## **Pre-processing**
 
 ### **Folder Structure Setup**
-- Clone the `analysis_scripts` repository from GitHub into the **main root** of the experiment folder.
-- Run `create_project_folders.bat` from within the `analysis_scripts` folder to generate all required folders and subfolders as below.
+- Clone the **`analysis_scripts`** repository from GitHub into the **main root** of the experiment folder.
+- Run `create_project_folders.bat` (located in the `analysis_scripts` folder) to automatically generate all required folders and subfolders as below.
 - Save all `test_report` files in the `docs/` folder.
-
-📁 Project Folder Structure
 
 ```
 MainFolderProject/
@@ -35,12 +33,11 @@ MainFolderProject/
 │
 └── docs/                     # Project documentation, READMEs, notes
 ```
-/
 
 ---
 
 ## **Copy Sensor Data**
-- Place the pressure and flow sensor `.txt` files in:
+- Place the pressure and flow sensor **`.txt` files in:
   ```
   raw_data/sensor_readings/
   ```
@@ -68,7 +65,7 @@ MainFolderProject/
 ---
 
 ## **Create Imaging Timestamp Log**
-- Create an Excel file in the `logs/` folder named:
+- Using `Properties` in **LAS X software**, create an Excel file in the `logs/` folder named:
   ```
   imaging_timestamp.xlsx
   ```
@@ -90,7 +87,7 @@ MainFolderProject/
   ```
   raw_data/images/tif_images/
   ```
-- Draw a rectangular ROI over the micromodel area.
+- Draw a rectangular ROI over the micromodel working section.
 - In the ROI Manager:
   - Add the selection
   - Rotate via `More > Rotate`
@@ -112,7 +109,7 @@ MainFolderProject/
   ```
 - Set `channelID = 'ch00'` for Brightfield.
 > *Note:* Do **not** use this for GFP or FRET. These will be aligned later using MATLAB.
-- Save the transformation log as:
+- After the running is completed, save the log as:
   ```
   logs/transform.txt
   ```
@@ -137,7 +134,7 @@ MainFolderProject/
 ---
 
 ### **Biomass Segmentation**
-- Open and run:
+- Open:
   ```
   biomass_segmentation.ijm
   ```
@@ -146,11 +143,9 @@ MainFolderProject/
   ```
   processed_images/biomass_images_*/
   ```
-- Threshold settings saved as:
+- Thresholding settings saved as:
   ```
   thresholding_parameters.txt
   ```
 
 ---
-
-> For alignment of GFP/FRET channels, use MATLAB scripts instead of Fiji.
