@@ -124,15 +124,27 @@ To monitor background intensity variations (caused by perturbations such as expe
 ### **Image Alignment and Cropping (Brightfield Only)**
 - Open and run the macro:
   ```
-  image_alignment.ijm
+  BF_alignment.ijm
   ```
 - Set `channelID = 'ch00'` for Brightfield.
-> *Note:* Do **not** use this for GFP or FRET. These will be aligned later using MATLAB.
+> *Note:* Do **not** use this for GFP or FRET. These will be aligned later using both MATLAB and Fiji.
 - After the running is completed, save the log as:
   ```
   logs/transform.txt
   ```
 
+---
+
+### **Image Alignment and Cropping (GFP and FRET)**
+- Open MATLAB and run:
+  ```
+  applyTransforms.m
+  ```
+- This mfile align (transform) all GFP and FRET images based on the Affine Transform matrices generating by Fiji.
+- After the running is completed, open Fiji and run:
+  ```
+  GFP_FRET_alignment.ijm
+  ```
 ---
 
 ### **Mask Refinement**
