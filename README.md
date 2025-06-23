@@ -52,11 +52,11 @@ MainFolderProject/
   ```
   raw_data/images/
   ```
-- Export all image channels (Brightfield, GFP, FRET) from **LAS X software** into:
+- Export all **RAW IMAGE** channels (Brightfield, GFP, FRET) from **LAS X software** into:
   ```
   raw_data/images/tif_images/
   ```
-  as `.tif` files.
+  as `.tif` files (make sure you choose RAW .
 - File naming convention (done automatically by LAS X):
   - `..._ch00.tif` → Brightfield
   - `..._ch01.tif` → GFP
