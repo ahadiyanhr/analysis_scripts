@@ -107,7 +107,7 @@ To monitor background intensity variations (caused by perturbations such as expe
 - Draw a rectangular ROI outside of the micromodel and close to the top or bottom edge of the working section.
 - Record the **X** and **Y** coordinates of the **top-left** and **bottom-right** corners of this ROI in an Excel file. Organize it with "TOP_LEFT" and "RIGHT-BOTTOM" as column headers and "X" and "Y" as row headers, like this:
 
-    |            | TOP_LEFT | RIGHT-BOTTOM |
+    |            | top-left | right-bottom |
     | :--------- | :------- | :----------- |
     | **X** |          |              |
     | **Y** |          |              |
