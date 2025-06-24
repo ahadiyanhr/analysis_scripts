@@ -140,7 +140,7 @@ To monitor background intensity variations (caused by perturbations such as expe
 
 ### **Mask Refinement**
 - Open the following two files as a stack in Fiji:
-  - `mask.tif`
+  - `mask.tif` [download](https://drive.google.com/open?id=1MAp_4y9EnB75sp7faB2pifpVzzQgqX1o&usp=drive_fs)
   - `t00_ch00.tif` (from `processed_images/modified_images/`)
 - Align using SIFT and crop to the original image size.
 - Apply outlier removal:
