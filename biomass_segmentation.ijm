@@ -2,8 +2,8 @@
 radius_outliers = 10;
 threshold_outliers = 40;
 threshold_method = "Otsu dark";
-manual_threshold_min = 62;  // you can modify
-manual_threshold_max = 255;
+manual_threshold_min = 10000;  // you can modify
+manual_threshold_max = 65535;
 // ------------------------------------------------------
 // Find all folders
 currentDir = getDirectory("current");

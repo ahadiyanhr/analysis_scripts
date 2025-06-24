@@ -44,15 +44,10 @@ function affineTransforms(channel, imgFolder, logFolder, outputFolder)
     imgPath = fullfile(chFiles(1).folder, chFiles(1).name);
     img = imread(imgPath);
 
-    % Convert to grayscale if RGB
-    if ndims(img) == 3
-        outputImg = rgb2gray(img);
-    end
-
     % Save image
     outName = sprintf('t00_%s.tif', channel);
     outPath = fullfile(outputFolder, outName);
-    imwrite(outputImg, outPath);
+    imwrite(img, outPath);
     
     % Process each timepoint after 00
     Transforms = cell(1, min(numFrames, length(chFiles)));
@@ -90,5 +85,5 @@ function affineTransforms(channel, imgFolder, logFolder, outputFolder)
         imwrite(outputImg, outPath);
     end
     
-    fprintf('✅ Done: Transformed 8-bit grayscale images for %s saved in modified_images\n', channel);
+    fprintf('✅ Done: Transformed images for %s saved in modified_images\n', channel);
 end

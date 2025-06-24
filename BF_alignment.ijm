@@ -86,8 +86,8 @@ Array.sort(bfList);
 // Open all images
 for (i=0; i<bfList.length; i++) {
     open(inputDir + bfList[i]);
-    // Convert them to 8-bit grayscale image
-	run("8-bit");
+    // Convert them to 16-bit grayscale image
+	// run("16-bit");
 }
 
 // Make stack of images
