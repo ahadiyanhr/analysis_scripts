@@ -34,8 +34,6 @@ MainFolderProject/
 └── docs/                     # Project documentation, READMEs, notes
 ```
 
----
-
 ### **Copy Sensor Data**
 - Place the pressure and flow sensor **`.txt` files in:
   ```
@@ -45,24 +43,21 @@ MainFolderProject/
   - *Constant pressure experiments:* `pconst_ob1.txt`, `pconst_reader.txt`
   - *Constant flow rate experiments:* `qconst_ob1.txt`, `qconst_reader.txt`
 
----
-
 ### **Copy Experimental Images**
 - Copy the Leica imaging project file to:
   ```
   raw_data/images/
   ```
-- Export all image channels (Brightfield, GFP, FRET) from **LAS X software** into:
+- Export all **RAW IMAGE** channels (Brightfield, GFP, FRET) from **LAS X software** into:
   ```
   raw_data/images/tif_images/
   ```
-  as `.tif` files.
+  as `.tif` files (make sure you choose RAW .
 - File naming convention (done automatically by LAS X):
   - `..._ch00.tif` → Brightfield
   - `..._ch01.tif` → GFP
   - `..._ch02.tif` → FRET
-
----
+> *Note:* If you only need specific images from an image series, you can use the **crop** tools in LAS X software. Simply set the start and end slice to create a new series from your original one.
 
 ### **Create Imaging Timestamp Log**
 - Using `Properties` in **LAS X software**, create an Excel file in the `logs/` folder named:
@@ -78,8 +73,6 @@ MainFolderProject/
   Image# = 0
   ```
   marking the beginning of the experiment.
-
----
 
 ### **Working Section ROI Creation**
 - Open **Fiji/ImageJ**
@@ -97,6 +90,7 @@ MainFolderProject/
   ```
   logs/working_area.roi
   ```
+
 ### **Background Intensity Coordinates Selection**
 To monitor background intensity variations (caused by perturbations such as experimental setup adjustments or lab lighting fluctuations) and ensure they remain within an acceptable range.
 - Open **Fiji/ImageJ**
@@ -124,16 +118,25 @@ To monitor background intensity variations (caused by perturbations such as expe
 ### **Image Alignment and Cropping (Brightfield Only)**
 - Open and run the macro:
   ```
-  image_alignment.ijm
+  BF_alignment.ijm
   ```
 - Set `channelID = 'ch00'` for Brightfield.
-> *Note:* Do **not** use this for GFP or FRET. These will be aligned later using MATLAB.
+> *Note:* Do **not** use this for GFP or FRET. These will be aligned later using both MATLAB and Fiji.
 - After the running is completed, save the log as:
   ```
   logs/transform.txt
   ```
 
----
+### **Image Alignment and Cropping (GFP and FRET)**
+- Open MATLAB and run:
+  ```
+  applyTransforms.m
+  ```
+- This mfile align (transform) all GFP and FRET images based on the Affine Transform matrices generating by Fiji.
+- After the running is completed, open Fiji and run:
+  ```
+  GFP_FRET_alignment.ijm
+  ```
 
 ### **Mask Refinement**
 - Open the following two files as a stack in Fiji:
@@ -149,8 +152,6 @@ To monitor background intensity variations (caused by perturbations such as expe
   ```
   processed_images/grain_mask/mask.tif
   ```
-
----
 
 ### **Biomass Segmentation**
 - Open:
