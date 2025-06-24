@@ -34,8 +34,6 @@ MainFolderProject/
 └── docs/                     # Project documentation, READMEs, notes
 ```
 
----
-
 ### **Copy Sensor Data**
 - Place the pressure and flow sensor **`.txt` files in:
   ```
@@ -44,8 +42,6 @@ MainFolderProject/
 - Use the following filename formats:
   - *Constant pressure experiments:* `pconst_ob1.txt`, `pconst_reader.txt`
   - *Constant flow rate experiments:* `qconst_ob1.txt`, `qconst_reader.txt`
-
----
 
 ### **Copy Experimental Images**
 - Copy the Leica imaging project file to:
@@ -62,7 +58,6 @@ MainFolderProject/
   - `..._ch01.tif` → GFP
   - `..._ch02.tif` → FRET
 > *Note:* If you only need specific images from an image series, you can use the **crop** tools in LAS X software. Simply set the start and end slice to create a new series from your original one.
----
 
 ### **Create Imaging Timestamp Log**
 - Using `Properties` in **LAS X software**, create an Excel file in the `logs/` folder named:
@@ -78,8 +73,6 @@ MainFolderProject/
   Image# = 0
   ```
   marking the beginning of the experiment.
-
----
 
 ### **Working Section ROI Creation**
 - Open **Fiji/ImageJ**
@@ -97,6 +90,7 @@ MainFolderProject/
   ```
   logs/working_area.roi
   ```
+
 ### **Background Intensity Coordinates Selection**
 To monitor background intensity variations (caused by perturbations such as experimental setup adjustments or lab lighting fluctuations) and ensure they remain within an acceptable range.
 - Open **Fiji/ImageJ**
@@ -133,8 +127,6 @@ To monitor background intensity variations (caused by perturbations such as expe
   logs/transform.txt
   ```
 
----
-
 ### **Image Alignment and Cropping (GFP and FRET)**
 - Open MATLAB and run:
   ```
@@ -145,7 +137,6 @@ To monitor background intensity variations (caused by perturbations such as expe
   ```
   GFP_FRET_alignment.ijm
   ```
----
 
 ### **Mask Refinement**
 - Open the following two files as a stack in Fiji:
@@ -161,8 +152,6 @@ To monitor background intensity variations (caused by perturbations such as expe
   ```
   processed_images/grain_mask/mask.tif
   ```
-
----
 
 ### **Biomass Segmentation**
 - Open:
