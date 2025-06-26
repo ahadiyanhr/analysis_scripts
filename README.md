@@ -22,10 +22,12 @@ MainFolderProject/
 ├── processed_images/         # Specific image-based outputs (masks, cropped)
 │   ├── grain_masks/                # For grain masks, segmentation masks, etc.
 │   ├── modified_images/              # For images that have been cropped and aligned
-│       └── biomass_images_*/         # For biomass occupation images based on parameters
-│        │    └── decay_images/            # For decay images based on parameters
-│        │    └── growth_images/           # For growth images based on parameters
-│        └── thresholding_parameters.txt   # Saved thresholding parameters
+│   |  └── biomass_images_*/         # For biomass occupation images based on parameters
+│   |    │    └── decay_images/            # For decay images based on parameters
+│   |    │    └── growth_images/           # For growth images based on parameters
+│   |    └── thresholding_parameters.txt   # Saved thresholding parameters
+│   |    
+│   └── do_mapped_images/              # For DO mapped images
 │
 ├── analysis_scripts/         # Fiji macros, MATLAB functions/scripts
 │
@@ -161,11 +163,22 @@ To monitor background intensity variations (caused by perturbations such as expe
 - Set thresholding parameters and run the macro.
 - Results are saved in:
   ```
-  processed_images/biomass_images_*/
+  processed_images/modified_images/biomass_images_*/
   ```
 - Thresholding settings saved as:
   ```
   thresholding_parameters.txt
+  ```
+
+### **DO Mapping**
+- Open:
+  ```
+  main.m
+  ```
+- Set exponential parameters for mapping ratio to DO concenctration and run.
+- Results are saved in:
+  ```
+  processed_images/do_mapped_images/
   ```
 
 ---
