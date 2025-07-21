@@ -37,7 +37,9 @@ echo.
 echo Creating Processed Images folders...
 mkdir "processed_images"
 mkdir "processed_images\grain_mask"
-mkdir "processed_images\modified_images"
+mkdir "processed_images\registered_images"
+mkdir "processed_images\do_ratio"
+mkdir "processed_images\background_subtracted"
 
 :: --- Create Logs Folder ---
 echo.
