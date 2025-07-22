@@ -21,17 +21,18 @@ MainFolderProject/
 │
 ├── processed_images/         # Specific image-based outputs (masks, cropped)
 │   ├── grain_masks/                # For grain masks, segmentation masks, etc.
-│   ├── modified_images/              # For images that have been cropped and aligned
+│   ├── registered_images/              # For images that have been cropped and aligned
 │   |  └── biomass_images_*/         # For biomass occupation images based on parameters
 │   |    │    └── decay_images/            # For decay images based on parameters
 │   |    │    └── growth_images/           # For growth images based on parameters
 │   |    └── thresholding_parameters.txt   # Saved thresholding parameters
-│   |    
-│   └── do_mapped_images/              # For DO mapped images
+│   |
+│   ├── background_subtracted/          # For background subtracted images   
+│   └── do_ratio/                 # For DO ratio struct data
 │
 ├── analysis_scripts/         # Fiji macros, MATLAB functions/scripts
 │
-├── logs/                     # Log files (Transforms log, imaging timestamp, and ROI needed for cropping)
+├── logs/                     # Log files (Transforms log, imaging timestamp)
 │
 └── docs/                     # Project documentation, READMEs, notes
 ```
@@ -54,7 +55,7 @@ MainFolderProject/
   ```
   raw_data/images/tif_images/
   ```
-  as `.tif` files (make sure you choose RAW .
+  as `.tif` files (make sure you choose RAW).
 - File naming convention (done automatically by LAS X):
   - `..._ch00.tif` → Brightfield
   - `..._ch01.tif` → GFP
@@ -76,43 +77,6 @@ MainFolderProject/
   ```
   marking the beginning of the experiment.
 
-### **Working Section ROI Creation**
-- Open **Fiji/ImageJ**
-- Load the first Brightfield image from:
-  ```
-  raw_data/images/tif_images/
-  ```
-- Draw a rectangular ROI over the micromodel working section.
-- In the ROI Manager:
-  - Add the selection
-  - Rotate via `More > Rotate`
-  - Align corners to fit the micromodel edges
-  - Add again to the ROI Manager
-- Save as:
-  ```
-  logs/working_area.roi
-  ```
-
-### **Background Intensity Coordinates Selection**
-To monitor background intensity variations (caused by perturbations such as experimental setup adjustments or lab lighting fluctuations) and ensure they remain within an acceptable range.
-- Open **Fiji/ImageJ**
-- Load the first Brightfield image from:
-  ```
-  raw_data/images/tif_images/
-  ```
-- Draw a rectangular ROI outside of the micromodel and close to the top or bottom edge of the working section.
-- Record the **X** and **Y** coordinates of the **top-left** and **bottom-right** corners of this ROI in an Excel file. Organize it with "TOP_LEFT" and "RIGHT-BOTTOM" as column headers and "X" and "Y" as row headers, like this:
-
-    |            | top-left | right-bottom |
-    | :--------- | :------- | :----------- |
-    | **X** |          |              |
-    | **Y** |          |              |
-
-- Save as:
-  ```
-  logs/int_coordinates.xlsx
-  ```
-
 ---
 
 ## **Process Images**
@@ -120,24 +84,13 @@ To monitor background intensity variations (caused by perturbations such as expe
 ### **Image Alignment and Cropping (Brightfield Only)**
 - Open and run the macro:
   ```
-  BF_alignment.ijm
+  transform_bf.ijm
   ```
 - Set `channelID = 'ch00'` for Brightfield.
-> *Note:* Do **not** use this for GFP or FRET. These will be aligned later using both MATLAB and Fiji.
-- After the running is completed, save the log as:
+> *Note:* Before closing Aligned_BF stack, ensure that Fiji ImageJ has aligned the images correctly.
+- After the running is completed, the log will be saved in:
   ```
-  logs/transform.txt
-  ```
-
-### **Image Alignment and Cropping (GFP and FRET)**
-- Open MATLAB and run:
-  ```
-  applyTransforms.m
-  ```
-- This mfile align (transform) all GFP and FRET images based on the Affine Transform matrices generating by Fiji.
-- After the running is completed, open Fiji and run:
-  ```
-  GFP_FRET_alignment.ijm
+  logs/transform_matrices.txt
   ```
 
 ### **Mask Refinement**
