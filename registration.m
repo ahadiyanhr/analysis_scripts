@@ -9,6 +9,11 @@ mainPath = pwd;
 cd('functions\');
 funcPath = pwd;
 
+% Original grain mask path
+cd(mainPath);
+cd('grain_mask\');
+origMaskPath = pwd;
+
 % Project path
 cd(mainPath);
 cd('../');
@@ -51,7 +56,7 @@ end
 imgNames = {imgFiles.name};
 
 % Read grain mask image
-mask_img = imread(fullfile(grainMaskPath, "mask16bit.tif"));
+mask_img = imread(fullfile(origMaskPath, "mask (hip).tif"));
 
 
 %% -------- Manual Alignment: BF_time0 to Mask --------
@@ -65,6 +70,10 @@ if size(img0, 3) > 1,  img0  = rgb2gray(img0);  end
 % Resize grain mask image based on the BF and save it
 cd(funcPath);
 mask_img = resizeMaskToBFWidth(mask_img, img0);
+
+% Save resized and inverted mask into the grain_mask path
+imwrite(mask_img, fullfile(grainMaskPath, 'resized_mask.tif'));
+imwrite(mask_img, fullfile(grainMaskPath, 'inverted_mask.tif'));
 
 % Binarize mask to have sharp edges of grains
 mask_thresh = imbinarize(mask_img, graythresh(mask_img));
