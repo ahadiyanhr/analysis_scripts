@@ -31,6 +31,7 @@ mkdir "raw_data\sensor_readings"
 echo.
 echo Creating Processed Data folder...
 mkdir "processed_data"
+mkdir "processed_data\do_ratio"
 
 :: --- Create Processed Images Folders ---
 echo.
@@ -38,7 +39,6 @@ echo Creating Processed Images folders...
 mkdir "processed_images"
 mkdir "processed_images\grain_mask"
 mkdir "processed_images\registered_images"
-mkdir "processed_images\do_ratio"
 mkdir "processed_images\background_subtracted"
 
 :: --- Create Logs Folder ---
