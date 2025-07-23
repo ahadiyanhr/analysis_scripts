@@ -18,18 +18,18 @@ MainFolderProject/
 │   └── sensor_readings/
 │
 ├── processed_data/           # Final, polished outputs of processing
+│   └── do_ratio/              # For DO Ratio images (struct data)
 │
 ├── processed_images/         # Specific image-based outputs (masks, cropped)
-│   ├── grain_masks/                # For grain masks, segmentation masks, etc.
-│   ├── modified_images/              # For images that have been cropped and aligned
-│   |  └── biomass_images_*/         # For biomass occupation images based on parameters
-│   |    │    └── decay_images/            # For decay images based on parameters
-│   |    │    └── growth_images/           # For growth images based on parameters
-│   |    └── thresholding_parameters.txt   # Saved thresholding parameters
-│   |    
-│   └── do_mapped_images/              # For DO mapped images
+│   ├── grain_mask/                # For grain masks, segmentation masks, etc.
+│   ├── registered_images/         # All registered images (3 channels).
+│   ├── background_subtracted/         # All background subtracted images (ready for thresholding).
+│   ├── thresholded_images/          # For images that have been thresholded
+│       └── subfolders/              # For biomass occupation images based on different thresholding methods
+│           └── thresholding_parameters.txt   # Saved thresholding parameters
 │
 ├── analysis_scripts/         # Fiji macros, MATLAB functions/scripts
+│   └── grain_mask/                # All grain masks for reference
 │
 ├── logs/                     # Log files (Transforms log, imaging timestamp, and ROI needed for cropping)
 │
@@ -54,13 +54,20 @@ MainFolderProject/
   ```
   raw_data/images/tif_images/
   ```
-  as `.tif` files (make sure you choose RAW .
+  as `.tif` files (make sure you choose RAW).
 - File naming convention (done automatically by LAS X):
   - `..._ch00.tif` → Brightfield
   - `..._ch01.tif` → GFP
   - `..._ch02.tif` → FRET
 > *Note:* If you only need specific images from an image series, you can use the **crop** tools in LAS X software. Simply set the start and end slice to create a new series from your original one.
 
+### **Copy Grain Mask Images**
+- Copy all mask images into:
+  ```
+  processed_images/grain_mask/mask.tif
+  ```
+  - Here is a link to access all grain masks [download](https://drive.google.com/open?id=1MAp_4y9EnB75sp7faB2pifpVzzQgqX1o&usp=drive_fs)
+  
 ### **Create Imaging Timestamp Log**
 - Using `Properties` in **LAS X software**, create an Excel file in the `logs/` folder named:
   ```
@@ -76,109 +83,43 @@ MainFolderProject/
   ```
   marking the beginning of the experiment.
 
-### **Working Section ROI Creation**
-- Open **Fiji/ImageJ**
-- Load the first Brightfield image from:
-  ```
-  raw_data/images/tif_images/
-  ```
-- Draw a rectangular ROI over the micromodel working section.
-- In the ROI Manager:
-  - Add the selection
-  - Rotate via `More > Rotate`
-  - Align corners to fit the micromodel edges
-  - Add again to the ROI Manager
-- Save as:
-  ```
-  logs/working_area.roi
-  ```
-
-### **Background Intensity Coordinates Selection**
-To monitor background intensity variations (caused by perturbations such as experimental setup adjustments or lab lighting fluctuations) and ensure they remain within an acceptable range.
-- Open **Fiji/ImageJ**
-- Load the first Brightfield image from:
-  ```
-  raw_data/images/tif_images/
-  ```
-- Draw a rectangular ROI outside of the micromodel and close to the top or bottom edge of the working section.
-- Record the **X** and **Y** coordinates of the **top-left** and **bottom-right** corners of this ROI in an Excel file. Organize it with "TOP_LEFT" and "RIGHT-BOTTOM" as column headers and "X" and "Y" as row headers, like this:
-
-    |            | top-left | right-bottom |
-    | :--------- | :------- | :----------- |
-    | **X** |          |              |
-    | **Y** |          |              |
-
-- Save as:
-  ```
-  logs/int_coordinates.xlsx
-  ```
-
 ---
 
 ## **Process Images**
 
-### **Image Alignment and Cropping (Brightfield Only)**
-- Open and run the macro:
+### **Generating Transform Matrices for Image Alignment**
+- Open and run this Fiji ImageJ macro:
   ```
-  BF_alignment.ijm
+  transform_bf.ijm
   ```
 - Set `channelID = 'ch00'` for Brightfield.
-> *Note:* Do **not** use this for GFP or FRET. These will be aligned later using both MATLAB and Fiji.
-- After the running is completed, save the log as:
+> *Note:* Before closing Aligned_BF stack, ensure that Fiji ImageJ has aligned the images correctly.
+- After the running is completed, the log will be saved in:
   ```
-  logs/transform.txt
-  ```
-
-### **Image Alignment and Cropping (GFP and FRET)**
-- Open MATLAB and run:
-  ```
-  applyTransforms.m
-  ```
-- This mfile align (transform) all GFP and FRET images based on the Affine Transform matrices generating by Fiji.
-- After the running is completed, open Fiji and run:
-  ```
-  GFP_FRET_alignment.ijm
+  logs/transform_matrices.txt
   ```
 
-### **Mask Refinement**
-- Open the following two files as a stack in Fiji:
-  - `mask.tif` [download](https://drive.google.com/open?id=1MAp_4y9EnB75sp7faB2pifpVzzQgqX1o&usp=drive_fs)
-  - `t00_ch00.tif` (from `processed_images/modified_images/`)
-- Align using SIFT and crop to the original image size.
-- Apply outlier removal:
+### **Registration**
+- Open and run in MATLAB:
   ```
-  Process > Noise > Remove Outliers
-  Radius: 7.5 | Threshold: 75 | Outliers: Bright
+  registration.m
   ```
-- Save the result as:
+- For manual alignment, select four corresponding points, located at the four corners, in both images.
+- After applying the mask, **compare the alignment**. If it looks good, choose **'YES'**.
+- All aligned images are saved in:
   ```
-  processed_images/grain_mask/mask.tif
+  processed_images/registered_images/
   ```
 
-### **Biomass Segmentation**
-- Open:
+### **Background Subtraction and DO Ratio calculation**
+- Open and run in MATLAB:
   ```
-  biomass_segmentation.ijm
+  backSub_do.m
   ```
-- Set thresholding parameters and run the macro.
-- Results are saved in:
+- All background subtracted images and DO Ratio data are saved in:
   ```
-  processed_images/modified_images/biomass_images_*/
-  ```
-- Thresholding settings saved as:
-  ```
-  thresholding_parameters.txt
-  ```
-
-### **DO Mapping**
-- Open:
-  ```
-  main.m
-  ```
-- Set exponential parameters for mapping ratio to DO concenctration and run.
-- Results are saved in:
-  ```
-  processed_images/do_mapped_images/
+  processed_images/background_subtracted/
+  processed_data/do_ratio/
   ```
 
 ---
