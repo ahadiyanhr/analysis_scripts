@@ -42,8 +42,8 @@ MainFolderProject/
   raw_data/sensor_readings/
   ```
 - Use the following filename formats:
-  - *Constant pressure experiments:* `pconst_ob1.txt`, `pconst_reader.txt`
-  - *Constant flow rate experiments:* `qconst_ob1.txt`, `qconst_reader.txt`
+  - *Constant pressure experiments:* `__ob1_pressures.txt`, `__reader_flowrate.txt`
+  - *Constant flow rate experiments:* `__ob1_flowrate.txt`, `__reader_pressures.txt`
 
 ### **Copy Experimental Images**
 - Copy the Leica imaging project file to:
