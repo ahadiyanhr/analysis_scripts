@@ -30,6 +30,8 @@ MainFolderProject/
 │
 ├── analysis_scripts/         # Fiji macros, MATLAB functions/scripts
 │   └── grain_mask/                # All grain masks for reference
+│   └── functions/                 # all old-version functions wrote for analysing
+│   └── timestamps_temp/           # templates for timestamps log
 │
 ├── logs/                     # Log files (Transforms log, imaging timestamp, and ROI needed for cropping)
 │
