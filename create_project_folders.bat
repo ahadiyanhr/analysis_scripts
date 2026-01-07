@@ -24,7 +24,8 @@ echo.
 echo Creating Raw Data folders...
 mkdir "raw_data"
 mkdir "raw_data\images"
-mkdir "raw_data\images\tif_images"
+mkdir "raw_data\images\bf_red_channel"
+mkdir "raw_data\images\gfp_channel"
 mkdir "raw_data\sensor_readings"
 
 :: --- Create Processed Data Folder ---

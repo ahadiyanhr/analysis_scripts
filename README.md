@@ -42,17 +42,22 @@ MainFolderProject/
   raw_data/sensor_readings/
   ```
 - Use the following filename formats:
-  - *Constant pressure experiments:* `pconst_ob1.txt`, `pconst_reader.txt`
-  - *Constant flow rate experiments:* `qconst_ob1.txt`, `qconst_reader.txt`
+  - *Constant pressure experiments:* `__ob1_pressures.txt`, `__reader_flowrate.txt`
+  - *Constant flow rate experiments:* `__ob1_flowrate.txt`, `__reader_pressures.txt`
 
 ### **Copy Experimental Images**
 - Copy the Leica imaging project file to:
   ```
   raw_data/images/
   ```
-- Export all **RAW IMAGE** channels (Brightfield, GFP, FRET) from **LAS X software** into:
+- Export all **RAW IMAGE** of channels (Brightfield, FRET) from **LAS X software** into:
   ```
-  raw_data/images/tif_images/
+  raw_data/images/bf_red_channel/
+  ```
+  as `.tif` files (make sure you choose RAW).
+- Export **RAW IMAGE** of GFP channel from **LAS X software** into: ([see google doc for details](https://docs.google.com/document/d/1rX5TPAGcIr966Zn2Bn92IoGF9PZxMy9OTDXNga8oEyc/edit?usp=sharing))
+  ```
+  raw_data/images/gfp_channel/
   ```
   as `.tif` files (make sure you choose RAW).
 - File naming convention (done automatically by LAS X):
