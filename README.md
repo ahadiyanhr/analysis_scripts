@@ -71,7 +71,7 @@ MainFolderProject/
   ```
   processed_images/grain_mask/mask.tif
   ```
-  - Here is a link to access all grain masks [download](https://drive.google.com/open?id=1MAp_4y9EnB75sp7faB2pifpVzzQgqX1o&usp=drive_fs)
+  - Here is a link to access all grain masks [download](https://github.com/ahadiyanhr/analysis_scripts/tree/main/grain_mask)
   
 ### **Create Imaging Timestamp Log**
 - Using `Properties` in **LAS X software**, create an Excel file in the `logs/` folder named:
