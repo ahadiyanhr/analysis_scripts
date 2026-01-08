@@ -18,7 +18,9 @@ MainFolderProject/
 │   └── sensor_readings/
 │
 ├── processed_data/           # Final, polished outputs of processing
-│   └── do_ratio/              # For DO Ratio images (struct data)
+│   └── do_ratio/               # For DO Ratio images (struct data)
+│   └── biomass_occupation/     # For biomass occupation data series (struct data)
+│   └── plots/                  # For biomass occupation plots (fig and png format)
 │
 ├── processed_images/         # Specific image-based outputs (masks, cropped)
 │   ├── grain_mask/                # For grain masks, segmentation masks, etc.
