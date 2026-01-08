@@ -30,7 +30,7 @@ grainMaskPath = pwd;
 
 % TIF raw images path
 cd(projectPath);
-cd('raw_data\images\tif_images\');
+cd('raw_data\images\bf_red_channel\');
 tifRawImagesPath = pwd;
 
 % Logs path
@@ -56,7 +56,8 @@ end
 imgNames = {imgFiles.name};
 
 % Read grain mask image
-mask_img = imread(fullfile(origMaskPath, "mask (hip).tif"));
+[fileName, filePath] = uigetfile(fullfile(origMaskPath, '*.tif'), 'Select the hip mask file');
+mask_img = imread(fullfile(filePath, fileName));
 
 
 %% -------- Manual Alignment: BF_time0 to Mask --------
@@ -121,7 +122,7 @@ for i = 1:nImgs
     baseName = extractBefore(name, 'ch00');  % This gets 't00_' or similar
     
     % Process each channel
-    for ch = 0:2
+    for ch = 0:1
         % Construct filename for current channel
         chName = sprintf('ch%02d', ch);
         filename = fullfile(tifRawImagesPath, [baseName, chName, '.tif']);
@@ -138,13 +139,9 @@ for i = 1:nImgs
         switch ch
             case 0  % Brightfield: grayscale
                 if size(img, 3) > 1, img = rgb2gray(img); end
-            case 1  % GFP: green channel
+            case 1  % FRET: red channel
                 if size(img, 3) == 3
                     img = img(:,:,2);  % Green channel
-                end
-            case 2  % FRET: red channel
-                if size(img, 3) == 3
-                    img = img(:,:,1);  % Red channel
                 end
         end
         
