@@ -80,7 +80,7 @@ MainFolderProject/
   ```
   imaging_timestamp.xlsx
   ```
-  Use [this template](https://github.com/ahadiyanhr/analysis_scripts/tree/main/timestamps_temp) for your reference.
+  > *Note:* Use [this template](https://github.com/ahadiyanhr/analysis_scripts/tree/main/timestamps_temp) for your reference.
 - Include the following columns:
   - `Image#`
   - `Absolute Time`
