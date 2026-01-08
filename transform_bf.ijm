@@ -5,7 +5,7 @@ channel_ID = getString("Enter brightfield channel ID:", "ch00");
 // Step 1: Inputs & find all folders'
 currentDir = getDirectory("current");
 parentDir = File.getParent(currentDir);
-inputDir = parentDir + "\\raw_data\\images\\tif_images" + File.separator;
+inputDir = parentDir + "\\raw_data\\images\\bf_red_channel" + File.separator;
 outputDir = parentDir + "\\processed_images\\registered_images" + File.separator;
 logDir = parentDir + "\\logs\\transform_matrices.txt";
 
