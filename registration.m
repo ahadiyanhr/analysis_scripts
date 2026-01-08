@@ -71,10 +71,11 @@ if size(img0, 3) > 1,  img0  = rgb2gray(img0);  end
 % Resize grain mask image based on the BF and save it
 cd(funcPath);
 mask_img = resizeMaskToBFWidth(mask_img, img0);
+inverted_img = imcomplement(mask_img);
 
 % Save resized and inverted mask into the grain_mask path
 imwrite(mask_img, fullfile(grainMaskPath, 'resized_mask.tif'));
-imwrite(mask_img, fullfile(grainMaskPath, 'inverted_mask.tif'));
+imwrite(inverted_img, fullfile(grainMaskPath, 'inverted_mask.tif'));
 
 % Binarize mask to have sharp edges of grains
 mask_thresh = imbinarize(mask_img, graythresh(mask_img));
