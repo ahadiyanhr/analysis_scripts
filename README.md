@@ -129,7 +129,11 @@ MainFolderProject/
   ... YOUR Desktop/background_subtracted
   ... YOUR Desktop/thresholded_images
   ```
-> These two folders should copy into main experiment folder.
+> These two folders should copy into main experiment folder as below:
+  ```
+  processed_images/background_subtracted/
+  processed_images/thresholded_images/
+  ```
   
 ### **Background Subtraction and DO Ratio calculation**
 - Open and run in MATLAB:
