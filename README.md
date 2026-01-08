@@ -23,7 +23,7 @@ MainFolderProject/
 ├── processed_images/         # Specific image-based outputs (masks, cropped)
 │   ├── grain_mask/                # For grain masks, segmentation masks, etc.
 │   ├── registered_images/         # All registered images (3 channels).
-│   ├── background_subtracted/         # All background subtracted images (ready for thresholding).
+│   ├── background_subtracted/       # All background subtracted images (ready for thresholding).
 │   ├── thresholded_images/          # For images that have been thresholded
 │       └── subfolders/              # For biomass occupation images based on different thresholding methods
 │           └── thresholding_parameters.txt   # Saved thresholding parameters
@@ -118,7 +118,19 @@ MainFolderProject/
   ```
   processed_images/registered_images/
   ```
-
+  
+### **Background Subtraction and Thresholding**
+- Open and run this Fiji ImageJ macro:
+  ```
+  BackSub_Threshoding.ijm
+  ```
+> *Note:* Due to issues with admin access to shared drive, all background subtracted and Thresholded images are saved on your Desktop in below folders:
+  ```
+  ... YOUR Desktop/background_subtracted
+  ... YOUR Desktop/thresholded_images
+  ```
+> These two folders should copy into main experiment folder.
+  
 ### **Background Subtraction and DO Ratio calculation**
 - Open and run in MATLAB:
   ```
