@@ -64,7 +64,7 @@ MainFolderProject/
 - File naming convention (done automatically by LAS X):
   - `..._ch00.tif` → Brightfield
   - `..._ch01.tif` → FRET
-> *Note:* If you only need specific images from an image series, you can use the **crop** tools in LAS X software. Simply set the start and end slice to create a new series from your original one.
+> *Note:* If you only need specific images (specific time) from an image series, you can use the **crop** tools in LAS X software. Simply set the start and end slice to create a new series from your original one.
 
 ### **Copy Grain Mask Images**
 - Copy all mask images into:
