@@ -51,10 +51,6 @@ MainFolderProject/
   - *Constant flow rate experiments:* `__ob1_flowrate.txt`, `__reader_pressures.txt`
 
 ### **Copy Experimental Images**
-- Copy the Leica imaging project file to:
-  ```
-  raw_data/images/
-  ```
 - Export all **RAW IMAGE** of channels (Brightfield, FRET) from **LAS X software** into:
   ```
   raw_data/images/bf_red_channel/
