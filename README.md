@@ -96,7 +96,8 @@ MainFolderProject/
 - Open the calibration images LIF file in Fiji and select `Hyperstack` as the view, then `Select All` and `OK`.
 - Go to `Image > Stacks > Tools > Concatenate`, check `All open windows` and `Open as 4D image` and press `OK`.
 - Open `extract_calib_data.ijm` and click on run.
-- In `Results` window, using `File > Save`, save the data with desired filename showing the optode batch# and test 
+- In `Results` window, using `File > Save`, save the data with desired filename showing the optode batch# and test
+- Open the CSV file, then enter all of the DO data for each image with the `O2` label in column F.
 
 ## **Process Images**
 
