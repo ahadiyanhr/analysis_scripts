@@ -88,8 +88,15 @@ MainFolderProject/
   Image# = 0
   ```
   marking the beginning of the experiment.
-
----
+  
+### **Optode Calibration**
+> *Note:* For optode calibration procedure and protocol, see **here**.
+- Move folder **`optode_calibration`** into the main calibration images folder.
+- Open Fiji ImageJ, then using `Analyze > Tools > ROI Manager`, open the `calibrationROI.roi`.
+- Open the calibration images LIF file in Fiji and select `Hyperstack` as the view, then `Select All` and `OK`.
+- Go to `Image > Stacks > Tools > Concatenate`, check `All open windows` and `Open as 4D image` and press `OK`.
+- Open `extract_calib_data.ijm` and click on run.
+- In `Results` window, using `File > Save`, save the data with desired filename showing the optode batch# and test 
 
 ## **Process Images**
 
