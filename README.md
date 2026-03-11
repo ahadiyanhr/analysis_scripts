@@ -9,6 +9,7 @@ This repository provides macros and scripts to support the analysis of pressure/
 ### **Folder Structure Setup**
 - Clone the **`analysis_scripts`** repository from GitHub into the **main root** of the experiment folder.
 - Run `create_project_folders.bat` (located in the `analysis_scripts` folder) to automatically generate all required folders and subfolders as below.
+- Rename `Leica images` in the folder into **`original_images_readings`**, then move the `ElveFlow data` folder into it.
 - Save all documentation files like `test_report`s or `culture verification` images in the `docs/` folder.
 
 ```
