@@ -99,6 +99,12 @@ MainFolderProject/
 - In `Results` window, using `File > Save`, save the data with desired filename as `opt##_id##.csv` that shows both optode batch# and calibration replicates id#.
 - Open the CSV file, then enter all of the DO data for each image with the `O2` label in column F.
 
+- Open and run this Fiji ImageJ macro:
+  ```
+  calib_joint_fit.m
+  ```
+  m file will run and generate a CSV file as `calibration_summary_opt##.csv`. Move this file into the `log` folder of the experiment.
+
 ## **Process Images**
 
 ### **Generating Transform Matrices for Image Alignment**
