@@ -44,6 +44,7 @@ mkdir "processed_images\grain_mask"
 mkdir "processed_images\registered_images"
 mkdir "processed_images\background_subtracted"
 mkdir "processed_images\thresholded_images"
+mkdir "processed_images\heatmap_images"
 
 :: --- Create Logs Folder ---
 echo.
