@@ -125,6 +125,7 @@ MainFolderProject/
   registration.m
   ```
 - For manual alignment, select four corresponding points, located at the four corners, in both images.
+> *Note:* To proceed after making a selection, dismiss the window.
 - After applying the mask, **compare the alignment**. If it looks good, choose **'YES'**.
 - All aligned images are saved in:
   ```
