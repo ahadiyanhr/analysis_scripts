@@ -30,6 +30,7 @@ MainFolderProject/
 │   ├── thresholded_images/          # For images that have been thresholded
 │       └── subfolders/              # For biomass occupation images based on different thresholding methods
 │           └── thresholding_parameters.txt   # Saved thresholding parameters
+│   ├── heatmap/              # All heatmap DO images.
 │
 ├── analysis_scripts/         # Fiji macros, MATLAB functions/scripts
 │   └── grain_mask/                # All grain masks for reference
