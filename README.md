@@ -148,7 +148,7 @@ MainFolderProject/
   processed_images/thresholded_images/
   ```
 
-### **Biomass Occupation Calculations and Plot**
+### **Biomass Occupation Calculations**
 - Open and run in MATLAB:
   ```
   biomass_occupation.m
@@ -157,16 +157,9 @@ MainFolderProject/
   ```
   processed_data/biomass_occupation/
   ```
-- For having biomass occupation plot, run in MATLAB:
-  ```
-  plot_data.m
-  ```
-- Then see the plots in below directory:
-   ```
-  processed_data/plots/
-  ```
 
-### **Background Subtraction and DO Ratio calculation???**
+
+### **DO Ratio and Distribution**
 - Open and run in MATLAB:
   ```
   backSub_do.m
@@ -176,5 +169,13 @@ MainFolderProject/
   processed_images/background_subtracted/
   processed_data/do_ratio/
   ```
-
+### **Plot processed data????????**
+- For having biomass occupation plot, run in MATLAB:
+  ```
+  plot_data.m
+  ```
+- Then see the plots in below directory:
+   ```
+  processed_data/plots/
+  ```
 ---
