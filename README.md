@@ -107,6 +107,8 @@ MainFolderProject/
   ```
   m file will run and generate a CSV file as `calibration_summary_opt##.csv`. Move this file into the `log` folder of the experiment.
 
+---
+
 ## **Process Images**
 
 ### **Generating Transform Matrices for Image Alignment**
@@ -169,6 +171,8 @@ MainFolderProject/
   processed_data/do_mapped/
   processed_images/heatmap_images/
   ```
+
+---
 
 ## **Post-Processing Images**
 
