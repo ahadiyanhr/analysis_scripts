@@ -170,7 +170,7 @@ MainFolderProject/
   processed_images/heatmap_images/
   ```
 
-## **Process Images**
+p## **Post-Processing Images**
 
 ### **Biomass Occupation Calculations**
 - Open and run in MATLAB:
