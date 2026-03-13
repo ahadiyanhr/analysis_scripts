@@ -19,22 +19,23 @@ MainFolderProject/
 │   └── sensor_readings/
 │
 ├── processed_data/           # Final, polished outputs of processing
-│   └── do_ratio/               # For DO Ratio images (struct data)
-│   └── biomass_occupation/     # For biomass occupation data series (struct data)
-│   └── plots/                  # For biomass occupation plots (fig and png format)
+│   ├── do_ratio/               # For optode DO Ratio image (struct data, pixelwise)
+│   ├── do_mapped/              # For optode DO Ratio image (struct data, blockwise, same size with heatmap images)
+│   ├── biomass_occupation/     # For biomass occupation data series (struct data)
+│   ├── plots/                  # For biomass occupation plots (fig and png format)
 │
 ├── processed_images/         # Specific image-based outputs (masks, cropped)
-│   ├── grain_mask/                # For grain masks, segmentation masks, etc.
-│   ├── registered_images/         # All registered images (3 channels).
+│   ├── grain_mask/                  # For grain masks, segmentation masks, etc.
+│   ├── registered_images/           # All registered images (3 channels).
+│   ├── heatmap/                     # All heatmap DO images (blockwise, same size with do_mapped data).
 │   ├── background_subtracted/       # All background subtracted images (ready for thresholding).
 │   ├── thresholded_images/          # For images that have been thresholded
 │       └── subfolders/              # For biomass occupation images based on different thresholding methods
 │           └── thresholding_parameters.txt   # Saved thresholding parameters
-│   ├── heatmap/              # All heatmap DO images.
 │
 ├── analysis_scripts/         # Fiji macros, MATLAB functions/scripts
-│   └── grain_mask/                # All grain masks for reference
-│   └── functions/                 # all sub-functions required for running main codes
+│   ├── grain_mask/                # All grain masks for reference
+│   ├── functions/                 # all sub-functions required for running main codes
 │   └── timestamps_temp/           # templates for timestamps log
 │
 ├── logs/                     # Log files (Transforms log, imaging timestamp, and ROI needed for cropping)
