@@ -150,17 +150,6 @@ MainFolderProject/
   processed_images/thresholded_images/
   ```
 
-### **Biomass Occupation Calculations**
-- Open and run in MATLAB:
-  ```
-  biomass_occupation.m
-  ```
-- Once you run this m file, biomass occupation data are saved in:
-  ```
-  processed_data/biomass_occupation/
-  ```
-
-
 ### **DO Ratio and Distribution Heatmap**
 - Open and run in MATLAB:
   ```
@@ -180,7 +169,19 @@ MainFolderProject/
   processed_data/do_mapped/
   processed_images/heatmap_images/
   ```
-  
+
+## **Process Images**
+
+### **Biomass Occupation Calculations**
+- Open and run in MATLAB:
+  ```
+  biomass_occupation.m
+  ```
+- Once you run this m file, biomass occupation data are saved in:
+  ```
+  processed_data/biomass_occupation/
+  ```
+
 ### **Plot processed data????????**
 - For having biomass occupation plot, run in MATLAB:
   ```
