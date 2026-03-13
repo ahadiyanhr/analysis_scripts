@@ -27,7 +27,7 @@ MainFolderProject/
 ├── processed_images/         # Specific image-based outputs (masks, cropped)
 │   ├── grain_mask/                  # For grain masks, segmentation masks, etc.
 │   ├── registered_images/           # All registered images (3 channels).
-│   ├── heatmap/                     # All heatmap DO images (blockwise, same size with do_mapped data).
+│   ├── heatmap_images/              # All heatmap DO images (blockwise, same size with do_mapped data).
 │   ├── background_subtracted/       # All background subtracted images (ready for thresholding).
 │   ├── thresholded_images/          # For images that have been thresholded
 │       └── subfolders/              # For biomass occupation images based on different thresholding methods
@@ -161,16 +161,26 @@ MainFolderProject/
   ```
 
 
-### **DO Ratio and Distribution**
+### **DO Ratio and Distribution Heatmap**
 - Open and run in MATLAB:
   ```
-  backSub_do.m
+  ratio_cal.m
   ```
-- All background subtracted images and DO Ratio data are saved in:
+- All DO Ratio data (pixelwise, the same size as original raw FRET images) are saved in:
   ```
-  processed_images/background_subtracted/
   processed_data/do_ratio/
   ```
+> *Note:* All struct data saved in `do_ratio` folder can be used for generating blockwise (block averaging) heatmaps in the following steps.
+- Open and run in MATLAB:
+  ```
+  heatmap_cal.m
+  ```
+- All DO heatmap images and data (blockwise) are saved in:
+  ```
+  processed_data/do_mapped/
+  processed_images/heatmap_images/
+  ```
+  
 ### **Plot processed data????????**
 - For having biomass occupation plot, run in MATLAB:
   ```
