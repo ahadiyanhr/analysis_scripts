@@ -23,6 +23,7 @@ MainFolderProject/
 │   ├── do_mapped/              # For optode DO Ratio image (struct data, blockwise, same size with heatmap images)
 │   ├── biomass_occupation/     # For biomass occupation data series (struct data)
 │   ├── plots/                  # For biomass occupation plots (fig and png format)
+│   └── pq_cleaned_data/        # CSV files for clean flowrate and deltaP data (including smooth data)
 │
 ├── processed_images/         # Specific image-based outputs (masks, cropped)
 │   ├── grain_mask/                  # For grain masks, segmentation masks, etc.
