@@ -121,6 +121,13 @@ MainFolderProject/
 
 ## **Process Images**
 
+### **Cleaning & smoothing flowrate and pressures data**
+- Open and run this Matlab:
+  ```
+  pq_cleaning.m
+  ```
+> *Note:* Default value for smoothing window is 20 secs but it can be changed.
+
 ### **Generating Transform Matrices for Image Alignment**
 - Open and run this Fiji ImageJ macro:
   ```
