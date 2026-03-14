@@ -84,13 +84,16 @@ MainFolderProject/
   > *Note:* Use [this template](https://github.com/ahadiyanhr/analysis_scripts/tree/main/timestamps_temp) for your reference.
 - Include the following columns:
   - `Image#`
-  - `Absolute Time`
-  - `Date`
+  - `Datetime`
 - The first row should be:
   ```
   Image# = 0
   ```
   marking the beginning of the experiment.
+- The second row format should be:
+  ```
+  mm/dd/yyyy hh:mm:ss AM/PM
+  ```
 
 ### **Create Sensors Offset Log**
 - Using `Offset` section in the **`docs/test_report.pdf`**, create an Excel file in the `logs/` folder named:
