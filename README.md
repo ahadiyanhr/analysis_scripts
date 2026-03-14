@@ -90,6 +90,15 @@ MainFolderProject/
   Image# = 0
   ```
   marking the beginning of the experiment.
+
+### **Create Sensors Offset Log**
+- Using `Offset` section in the **`docs/test_report.pdf`**, create an Excel file in the `logs/` folder named:
+  ```
+  sensor_offset.xlsx
+  ```
+- Include the following columns:
+  - `flowrate`
+  - `pressure_diff`
   
 ### **Optode Calibration**
 > *Note:* For optode calibration procedure and protocol, see **here**.
