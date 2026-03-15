@@ -196,14 +196,14 @@ MainFolderProject/
 
 ## **Post-Processing Images**
 
-### **Biomass Occupation Calculations**
+### **Biomass Occupation and Bulk DO Calculations**
 - Open and run in MATLAB:
   ```
-  biomass_occupation.m
+  bioOccu_bulkDO.m
   ```
-- Once you run this m file, biomass occupation data are saved in:
+- Once you run this m file, biomass occupation and bulk DO data are saved in:
   ```
-  processed_data/biomass_occupation/
+  processed_data/bioOccu_bulkDO/
   ```
 
 ### **Plot processed data????????**
