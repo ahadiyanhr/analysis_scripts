@@ -206,12 +206,12 @@ MainFolderProject/
   processed_data/bioOccu_bulkDO/
   ```
 
-### **Plot processed data????????**
-- For having biomass occupation plot, run in MATLAB:
+### **Generating Combined Plot**
+- For having a combined plot (biomass occupation, Bulk DO, Flowrate, and DeltaP), run in MATLAB:
   ```
   plot_data.m
   ```
-- Then see the plots in below directory:
+- Then see the plot in below directory:
    ```
   processed_data/plots/
   ```
