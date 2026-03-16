@@ -34,8 +34,9 @@ echo Creating Processed Data folder...
 mkdir "processed_data"
 mkdir "processed_data\do_ratio"
 mkdir "processed_data\do_heatmap"
-mkdir "processed_data\biomass_occupation"
+mkdir "processed_data\bioOccu_bulkDO"
 mkdir "processed_data\plots"
+mkdir "processed_data\pq_cleaned_data"
 
 :: --- Create Processed Images Folders ---
 echo.
