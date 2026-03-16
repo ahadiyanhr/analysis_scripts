@@ -81,7 +81,7 @@ MainFolderProject/
   ```
   imaging_timestamp.xlsx
   ```
-  > *Note:* Use [this template](https://github.com/ahadiyanhr/analysis_scripts/tree/main/timestamps_temp) for your reference.
+  > *Note:* Use [this template](https://github.com/ahadiyanhr/analysis_scripts/tree/main/table_templates) for your reference.
 - Include the following columns:
   - `Image#`
   - `Datetime`
@@ -103,6 +103,7 @@ MainFolderProject/
 - Include the following columns:
   - `flowrate`
   - `pressure_diff`
+> *Note:* Use [this template](https://github.com/ahadiyanhr/analysis_scripts/tree/main/table_templates) for your reference.
   
 ### **Optode Calibration**
 > *Note:* For optode calibration procedure and protocol, see **here**.
