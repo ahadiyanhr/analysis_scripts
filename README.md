@@ -69,12 +69,8 @@ MainFolderProject/
   - `..._ch01.tif` → FRET
 > *Note:* If you only need specific images (specific time) from an image series, you can use the **crop** tools in LAS X software. Simply set the start and end slice to create a new series from your original one.
 
-### **Copy Grain Mask Images**
-- Copy all mask images into:
-  ```
-  processed_images/grain_mask/mask.tif
-  ```
-  - Here is a link to access all grain masks [download](https://github.com/ahadiyanhr/analysis_scripts/tree/main/grain_mask)
+### **Grain Mask Images**
+- Here is a link to access all grain masks [download](https://github.com/ahadiyanhr/analysis_scripts/tree/main/grain_mask)
   
 ### **Create Imaging Timestamp Log**
 - Using `Properties` in **LAS X software**, create an Excel file in the `logs/` folder named:
