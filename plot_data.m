@@ -129,12 +129,14 @@ tl = tiledlayout(2,1,'TileSpacing','loose','Padding','compact');
 axTop = nexttile(tl,1);
 
 yyaxis(axTop,'left')
-plot(axTop, hours_img_plot, biomass_occ_plot, '-o', ...
+
+bio_norm = biomass_occ_plot ./ max(biomass_occ_plot, [], 'omitnan');
+plot(axTop, hours_img_plot, bio_norm, '-o', ...
     'Color', [1 0.5 0], ...
     'MarkerFaceColor', [1 0.5 0], ...
     'MarkerSize', 4, ...
     'LineWidth', 0.5);
-ylabel(axTop,'Biomass occupation (%)','Color',[1 0.5 0],'FontSize',12,'FontWeight','bold');
+ylabel(axTop,'Normalized biomass (bio / max)','Color',[1 0.5 0],'FontSize',12,'FontWeight','bold');
 axTop.YColor = [1 0.5 0];
 
 yyaxis(axTop,'right')
