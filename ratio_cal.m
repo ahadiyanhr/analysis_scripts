@@ -55,7 +55,20 @@ end
 % Reading all FRET images
 fretFiles = dir(fullfile(registeredPath, '*ch01*.tif')); % FRET channel
 
-[~, idx] = sort({fretFiles.name});
+% Sort by numeric time index, not alphabetically
+names = {fretFiles.name};
+timeNums = nan(size(names));
+
+for k = 1:numel(names)
+    tok = regexp(names{k}, '^t(\d+)_', 'tokens', 'once');
+    if ~isempty(tok)
+        timeNums(k) = str2double(tok{1});
+    else
+        error('Filename does not match expected pattern: %s', names{k});
+    end
+end
+
+[~, idx] = sort(timeNums);
 fretFiles = fretFiles(idx);
 
 % Start the process
@@ -92,13 +105,20 @@ for i = 1:numel(fretFiles)
     % Get timepoint label from filename
     [~, baseName, ~] = fileparts(fretFiles(i).name);
     timeLabel = extractBefore(baseName, '_ch01');
+    % Extract number after 't'
+    tok = regexp(timeLabel, '^t(\d+)', 'tokens', 'once');
+    tNum = str2double(tok{1});
+    
+    % Rebuild label with 3-digit padding
+    timeLabel = sprintf('t%03d', tNum);
+    
     ratioMapName = fullfile(doRatioPath, sprintf('ratio_%s.mat', timeLabel));
     
     % Save ratio image as .mat
     save(ratioMapName, 'do_ratio', '-v7.3');
-    fprintf('✅ Saved ratio image: %s\n', ratioMapName);
+    fprintf('✅ Saved ratio image: %s\n', sprintf('ratio_%s.mat', timeLabel));
     
 end
 
-fprintf('\nDone! All ratio images saved in: do_ratio.mat\n');
+fprintf('\nDone! All ratio images saved in: do_ratio folder\n');
 
