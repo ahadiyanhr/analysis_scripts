@@ -116,7 +116,7 @@ bulk_DO_plot     = bulk_DO(mask_img);
 %% -------------------------------------------------
 step = 10;
 idx = 1:step:length(hours_img_plot);
-imgLabels = arrayfun(@(k) sprintf('t%02d',k-1), idx, 'UniformOutput', false);
+imgLabels = arrayfun(@(k) sprintf('#%02d',k-1), idx, 'UniformOutput', false);
 
 %% -------------------------------------------------
 % Layout
