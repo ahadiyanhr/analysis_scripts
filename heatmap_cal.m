@@ -252,11 +252,11 @@ for i = 1:numel(ratio_files)
     % Save tif
     imwrite(rgbImg, fullfile(heatmapPath, sprintf('heatmap_%s.tif', timeLabel)));
 
-    fprintf('✅ Saved heatmap image and mapped data: %s\n', ratioMapName);
+    fprintf('✅ Saved heatmap image and mapped data: %s\n', sprintf('heatmap_%s.tif', timeLabel));
     
 end
 
-fprintf('\nDone! All ratio images saved in: do_ratio.mat\n');
+fprintf('\nDone! All heatmaps and mapped images saved infolders\n');
 
 
 %% === CUSTOM COLORMAP FUNCTION ===
