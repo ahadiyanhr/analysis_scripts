@@ -50,8 +50,30 @@ for (i=0; i<list.length; i++) {
 
 nFiles = bfList.length;
 
-// Sort files if necessary (optional, depending on your filenames)
-Array.sort(bfList);
+// Create sortable keys using numeric time index
+sortKeys = newArray(nFiles);
+sortedList = newArray(nFiles);
+
+for (i = 0; i < nFiles; i++) {
+    name = bfList[i];
+
+    // Find time index between "t" and "_"
+    uscore = indexOf(name, "_");
+    tIndex = substring(name, 1, uscore);  // from after "t" to "_"
+    tNum = parseInt(tIndex);
+
+    // Make fixed-width numeric key + original filename
+    sortKeys[i] = IJ.pad(tNum, 5) + "|" + name;
+}
+
+// Sort keys alphabetically, which now works because numbers are padded
+Array.sort(sortKeys);
+
+// Recover filenames in numeric order
+for (i = 0; i < nFiles; i++) {
+    sep = indexOf(sortKeys[i], "|");
+    bfList[i] = substring(sortKeys[i], sep + 1);
+}
 
 // Load reference image (t=0)
 open(inputDir + bfList[0]);
@@ -64,6 +86,7 @@ for (i = 1; i < nFiles; i++) {
     
     // Open current time t image
     open(inputDir + bfList[i]);
+    print(bfList[i]);
     rename("currImage");
     run("Enhance Contrast...", "saturated=0.35 normalize");
     
@@ -81,7 +104,7 @@ for (i = 1; i < nFiles; i++) {
     run("Enhance Contrast...", "saturated=0.35 normalize");
     
     // Rename image
-    num = IJ.pad(i, 2); // pad with leading zeros: 01, 02, etc.
+    num = IJ.pad(i, 3); // pad with leading zeros: 01, 02, etc.
     rename("Image_" + num);
     
     // Save background subtracted image
