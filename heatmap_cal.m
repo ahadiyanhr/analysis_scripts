@@ -77,7 +77,20 @@ Rhigh_all = T.Rhigh_joint;
 Chigh_all = T.C_high;
 
 % This is the average ratio you want to evaluate
-first_do_file = dir(fullfile(doRatioPath,'*_t00.mat'));
+first_do_file = dir(fullfile(doRatioPath,'ratio_t*.mat'));
+% Sort and pick first one
+names = {first_do_file.name};
+timeNums = nan(size(names));
+
+for k = 1:numel(names)
+    tok = regexp(names{k}, '^ratio_t(\d+)\.mat$', 'tokens', 'once');
+    if ~isempty(tok)
+        timeNums(k) = str2double(tok{1});
+    end
+end
+[~, idx] = sort(timeNums);
+first_do_file = first_do_file(idx(1));
+
 first_do_ratio = load(fullfile(doRatioPath,first_do_file.name));
 ratio_average = nanmean(first_do_ratio.do_ratio(:));
 
@@ -111,6 +124,22 @@ A_high = alpha_shared + (1 - alpha_shared) ./ (1 + Ksv_shared .* Chigh);
 
 % Reading all DO Ratio files
 ratio_files = dir(fullfile(doRatioPath,'*.mat'));
+
+% Sort ratio files by numeric time index
+names = {ratio_files.name};
+timeNums = nan(size(names));
+
+for k = 1:numel(names)
+    tok = regexp(names{k}, '^ratio_t(\d+)\.mat$', 'tokens', 'once');
+    if ~isempty(tok)
+        timeNums(k) = str2double(tok{1});
+    else
+        error('Filename does not match expected pattern: %s', names{k});
+    end
+end
+
+[~, idx] = sort(timeNums);
+ratio_files = ratio_files(idx);
 
 Icrop = first_do_ratio.do_ratio(1:Hc, 1:Wc);
 Iresh = reshape(double(Icrop), blk, hBlocks, blk, wBlocks);
@@ -205,7 +234,15 @@ for i = 1:numel(ratio_files)
     
     % % Get timepoint label from filename
     [~, baseName, ~] = fileparts(ratio_files(i).name);
-    timeLabel = extractAfter(baseName, 'ratio_');  
+
+    % Extract numeric part from ratio_t### format
+    tok = regexp(baseName, '^ratio_t(\d+)$', 'tokens', 'once');
+    if isempty(tok)
+        error('Filename does not match expected pattern: %s', baseName);
+    end
+    
+    tNum = str2double(tok{1});
+    timeLabel = sprintf('t%03d', tNum); 
     
     % Save ratio image as .mat
     ratioMapName = fullfile(doMappedPath, sprintf('do_mapped_%s.mat', timeLabel));
