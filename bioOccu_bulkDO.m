@@ -29,8 +29,18 @@ doMappedPath = pwd;
 
 % Biomass occupation data folder path
 cd(projectPath);
-cd('processed_data\biomass_occupation\');
+cd('processed_data\bioOccu_bulkDO\');
 biomassDataPath = pwd;
+
+% Grain mask path
+cd(projectPath);
+cd('processed_images\grain_mask\');
+grainMaskPath = pwd;
+
+%% -------- LOAD MASK FILE --------
+maskImg = imread(fullfile(grainMaskPath, 'inverted_mask.tif'));
+grainMask = maskImg < (max(maskImg)/2);
+p_grain   = 1-mean(grainMask(:));
 
 %% ---- Starting process ----
 
@@ -105,7 +115,7 @@ for k = 1:length(subfolders)
         end
         
         if crop == 0
-            biomass_percent = 100 * sum(img(:)) / numel(img);
+            biomass_percent = 100 * sum(img(:)) / (numel(maskImg)*(1-p_grain));
             data.biomass_occupation(end+1) = biomass_percent;
             data.bulk_do(end+1) = mean(mappedFile.mapped(:));
             data.image_names{end+1} = thresh_files(i).name;
