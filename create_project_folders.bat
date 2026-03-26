@@ -33,6 +33,7 @@ echo.
 echo Creating Processed Data folder...
 mkdir "processed_data"
 mkdir "processed_data\do_ratio"
+mkdir "processed_data\do_mapped"
 mkdir "processed_data\do_heatmap"
 mkdir "processed_data\bioOccu_bulkDO"
 mkdir "processed_data\plots"
