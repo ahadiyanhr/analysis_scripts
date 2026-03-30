@@ -203,6 +203,16 @@ MainFolderProject/
   processed_data/bioOccu_bulkDO/
   ```
 
+### **Biomass Density Overlay**
+- Open and run in MATLAB:
+  ```
+  bioOccu_density_overlay.m
+  ```
+- Once you run this m file, biomass density overlay iamges are saved in:
+  ```
+  processed_data/biomass_density_overlay/
+  ```
+
 ### **Generating Combined Plot**
 - For having a combined plot (biomass occupation, Bulk DO, Flowrate, and DeltaP), run in MATLAB:
   ```
