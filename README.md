@@ -30,6 +30,7 @@ MainFolderProject/
 │   ├── registered_images/           # All registered images (3 channels).
 │   ├── heatmap_images/              # All heatmap DO images (blockwise, same size with do_mapped data).
 │   ├── background_subtracted/       # All background subtracted images (ready for thresholding).
+│   ├── biomass_density_overlay/     # For biomass density overlay images generated from background subtracted images
 │   ├── thresholded_images/          # For images that have been thresholded
 │       └── subfolders/              # For biomass occupation images based on different thresholding methods
 │           └── thresholding_parameters.txt   # Saved thresholding parameters
