@@ -34,6 +34,10 @@ MainFolderProject/
 │   ├── thresholded_images/          # For images that have been thresholded
 │       └── subfolders/              # For biomass occupation images based on different thresholding methods
 │           └── thresholding_parameters.txt   # Saved thresholding parameters
+│   ├── growth_erosion_images/       # For the biomass growth and erosion images
+│       ├── growth/                  # For biomass growth images
+│       ├── erosion/                 # For biomass erosion images
+│       └── net/                     # For net biomass images (= growth - erosion)
 │
 ├── analysis_scripts/         # Fiji macros, MATLAB functions/scripts
 │   ├── grain_mask/                # All grain masks for reference
