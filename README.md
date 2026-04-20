@@ -22,6 +22,7 @@ MainFolderProject/
 │   ├── do_ratio/               # For optode DO Ratio image (struct data, pixelwise)
 │   ├── do_mapped/              # For optode DO Ratio image (struct data, blockwise, same size with heatmap images)
 │   ├── bioOccu_bulkDO/         # For biomass occupation and bulk DO data series (struct data)
+│   ├── growth_erosion/         # For biomass growth and erosion data (struct data)
 │   ├── plots/                  # For biomass occupation plots (fig and png format)
 │   └── pq_cleaned_data/        # CSV files for clean flowrate and deltaP data (including smooth data)
 │
