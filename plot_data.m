@@ -97,25 +97,25 @@ figure('Color','w','Position',[100 80 1250 700]);
 %% -------------------------------------------------
 % OPTIONAL: crop to first 100 hours
 %% -------------------------------------------------
-mask_q   = hours_q   <= 100;
-mask_p   = hours_p   <= 100;
-mask_img = hours_img <= 100;
-
-hours_q_plot   = hours_q(mask_q);
-q_smooth_plot  = q_smooth(mask_q);
-
-hours_p_plot   = hours_p(mask_p);
-dp_smooth_plot = dp_smooth(mask_p);
-
-hours_img_plot   = hours_img(mask_img);
-biomass_occ_plot = biomass_occ(mask_img);
-bulk_DO_plot     = bulk_DO(mask_img);
+% mask_q   = hours_q   <= 100;
+% mask_p   = hours_p   <= 100;
+% mask_img = hours_img <= 100;
+% 
+% hours_q_plot   = hours_q(mask_q);
+% q_smooth_plot  = q_smooth(mask_q);
+% 
+% hours_p_plot   = hours_p(mask_p);
+% dp_smooth_plot = dp_smooth(mask_p);
+% 
+% hours_img_plot   = hours_img(mask_img);
+% biomass_occ_plot = biomass_occ(mask_img);
+% bulk_DO_plot     = bulk_DO(mask_img);
 
 %% -------------------------------------------------
 % Make image labels: t00, t01, t02, ...
 %% -------------------------------------------------
 step = 10;
-idx = 1:step:length(hours_img_plot);
+idx = 1:step:length(hours_img);
 imgLabels = arrayfun(@(k) sprintf('#%02d',k-1), idx, 'UniformOutput', false);
 
 %% -------------------------------------------------
@@ -130,8 +130,8 @@ axTop = nexttile(tl,1);
 
 yyaxis(axTop,'left')
 
-bio_norm = biomass_occ_plot ./ max(biomass_occ_plot, [], 'omitnan');
-plot(axTop, hours_img_plot, bio_norm, '-o', ...
+bio_norm = biomass_occ ./ max(biomass_occ, [], 'omitnan');
+plot(axTop, hours_img, bio_norm, '-o', ...
     'Color', [1 0.5 0], ...
     'MarkerFaceColor', [1 0.5 0], ...
     'MarkerSize', 4, ...
@@ -140,7 +140,7 @@ ylabel(axTop,'Normalized biomass (bio / max)','Color',[1 0.5 0],'FontSize',12,'F
 axTop.YColor = [1 0.5 0];
 
 yyaxis(axTop,'right')
-plot(axTop, hours_img_plot, bulk_DO_plot, '-o', ...
+plot(axTop, hours_img, bulk_DO, '-o', ...
     'Color', [0 0.45 0.74], ...
     'MarkerFaceColor', [0 0.45 0.74], ...
     'MarkerSize', 4, ...
@@ -159,14 +159,14 @@ axTop.XTick = [];
 axBot = nexttile(tl,2);
 
 yyaxis(axBot,'left')
-plot(axBot, hours_q_plot, q_smooth_plot, ...
+plot(axBot, hours_q, q_smooth, ...
     'Color', [0 0.35 0], ...
     'LineWidth', 2);
 ylabel(axBot,'Flowrate [µL/min]','Color',[0 0.35 0],'FontSize',12,'FontWeight','bold');
 axBot.YColor = [0 0.35 0];
 
 yyaxis(axBot,'right')
-plot(axBot, hours_p_plot, dp_smooth_plot, ...
+plot(axBot, hours_p, dp_smooth, ...
     'Color', [1 0 0], ...
     'LineWidth', 0.5);
 ylabel(axBot,'Pressure [mbar]','Color',[1 0 0],'FontSize',12,'FontWeight','bold');
@@ -182,7 +182,7 @@ box(axBot,'on');
 linkaxes([axTop axBot],'x');
 
 xMin = 0;
-xMax = max([hours_q_plot(:); hours_p_plot(:); hours_img_plot(:)]);
+xMax = max([hours_q(:); hours_p(:); hours_img(:)]);
 xlim(axTop,[xMin xMax]);
 xlim(axBot,[xMin xMax]);
 
@@ -191,10 +191,10 @@ xlim(axBot,[xMin xMax]);
 % Draw on BOTH axes so they visually continue through the figure
 %% -------------------------------------------------
 for i = idx
-    xline(axTop, hours_img_plot(i), ':', ...
+    xline(axTop, hours_img(i), ':', ...
         'Color',[0.6 0.6 0.6], 'LineWidth',2);
 
-    xline(axBot, hours_img_plot(i), ':', ...
+    xline(axBot, hours_img(i), ':', ...
         'Color',[0.6 0.6 0.6], 'LineWidth',2);
 end
 
@@ -212,7 +212,7 @@ axTopX = axes('Units','normalized', ...
     'HitTest', 'off', ...
     'HandleVisibility', 'off');
 
-axTopX.XTick = hours_img_plot(idx);
+axTopX.XTick = hours_img(idx);
 axTopX.XTickLabel = imgLabels;
 axTopX.TickLength = [0.004 0.004];
 xlabel(axTopX,'Image number');
