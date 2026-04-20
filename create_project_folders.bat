@@ -49,6 +49,9 @@ mkdir "processed_images\background_subtracted"
 mkdir "processed_images\thresholded_images"
 mkdir "processed_images\heatmap_images"
 mkdir "processed_images\biomass_density_overlay"
+mkdir "processed_images\growth_erosion_images\growth"
+mkdir "processed_images\growth_erosion_images\erosion"
+mkdir "processed_images\growth_erosion_images\net"
 
 :: --- Create Logs Folder ---
 echo.
