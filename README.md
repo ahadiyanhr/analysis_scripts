@@ -218,8 +218,18 @@ MainFolderProject/
   processed_data/biomass_density_overlay/
   ```
 
+### **%Growth and % Erosion Calculation**
+- Open and run in MATLAB:
+  ```
+  growth_erosion_cal.m
+  ```
+- Once you run this m file is saved in:
+  ```
+  processed_data/growth_erosion/
+  ```
+
 ### **Generating Combined Plot**
-- For having a combined plot (biomass occupation, Bulk DO, Flowrate, and DeltaP), run in MATLAB:
+- For having a combined plot (three panel) (%growth, %erosion, %net, normalized biomass occupation, Bulk DO, Flowrate, and DeltaP), run in MATLAB:
   ```
   plot_data.m
   ```
