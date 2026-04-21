@@ -1,16 +1,29 @@
-%% One combined plot:
-% Left axis:
-%   - q_smooth from cleaned_flowrate.csv (dark green)
-%   - dP_smooth from cleaned_pressures.csv (red)
-% Right axis:
-%   - biomass occupation from MAT file (orange, line + circles)
-%   - bulk DO from MAT file (blue, line + circles)
+%% Three-panel combined plot
+% TOP:
+%   - Growth [% of previous biomass]
+%   - Erosion [% of previous biomass]
+%   - Net [% of previous biomass]
+%
+% MIDDLE:
+%   - Normalized biomass occupation
+%   - Bulk DO
+%
+% BOTTOM:
+%   - Flowrate
+%   - Pressure
+%
 % X-axis:
-%   - experiment time in hours, where earliest datetime across all data = 0
+%   - experiment time in hours, where earliest datetime across
+%     flowrate, pressure, and imaging timestamps = 0
+%
+% Top x-axis:
+%   - image numbers (#00, #01, #02, ...)
 
 clear; clc; close all;
 
-%% -------- Setup --------
+%% -------------------------------------------------
+% Setup
+%% -------------------------------------------------
 
 % Scripts path
 mainPath = pwd;
@@ -35,171 +48,311 @@ cd(projectPath);
 cd('processed_data\bioOccu_bulkDO\');
 bioDOPath = pwd;
 
+% Growth/Erosion metrics path
+cd(projectPath);
+cd('processed_data\growth_erosion\');
+growthMetricsPath = pwd;
+
 % Plots path
 cd(projectPath);
 cd('processed_data\plots\');
 plotPath = pwd;
 
-%% -------- File paths --------
-flowrateFile = 'cleaned_flowrate.csv';
-pressFile = 'cleaned_pressures.csv';
-timeFile = 'imaging_timestamp.xlsx';
-matFile  = 'biomass_images_01.mat';
+%% -------------------------------------------------
+% File names
+%% -------------------------------------------------
+flowrateFile   = 'cleaned_flowrate.csv';
+pressFile      = 'cleaned_pressures.csv';
+timeFile       = 'imaging_timestamp.xlsx';
+bioMatFile     = 'biomass_images_01.mat';
+metricsMatFile = 'growth_erosion.mat';
 
-%% -------- Read flowrate data --------
-TTq = readtable(fullfile(pdCleanedPath,flowrateFile), 'TextType', 'string');
+%% -------------------------------------------------
+% Read flowrate data
+%% -------------------------------------------------
+TTq = readtable(fullfile(pdCleanedPath, flowrateFile), 'TextType', 'string');
 TTq.datetime = datetime(TTq.datetime, ...
     'InputFormat', 'MM/dd/yyyy hh:mm:ss a');
-t_q = TTq.datetime;
-q_smooth = TTq.q_smooth;
 
-%% -------- Read pressure data --------
+t_q = TTq.datetime(:);
+q_smooth = TTq.q_smooth(:);
+
+%% -------------------------------------------------
+% Read pressure data
+%% -------------------------------------------------
 TTp = readtable(fullfile(pdCleanedPath, pressFile), 'TextType', 'string');
 TTp.datetime = datetime(TTp.datetime, ...
     'InputFormat', 'MM/dd/yyyy hh:mm:ss a');
-t_p = TTp.datetime;
-dp_smooth = TTp.dP_smooth;   % column E in your file
 
-%% -------- Read imaging timestamps --------
+t_p = TTp.datetime(:);
+dp_smooth = TTp.dP_smooth(:);
+
+%% -------------------------------------------------
+% Read imaging timestamps
+%% -------------------------------------------------
 imagingTime = readtable(fullfile(logsPath, timeFile), 'TextType', 'string');
-% Your Excel file has columns: Image#, Datetime
 t_img = datetime(imagingTime.Datetime, 'InputFormat', 'yyyy-MM-dd HH:mm:ss');
+t_img = t_img(:);
 
-%% -------- Read MAT file --------
-S = load(fullfile(bioDOPath, matFile));
+%% -------------------------------------------------
+% Read biomass occupation and bulk DO
+%% -------------------------------------------------
+S = load(fullfile(bioDOPath, bioMatFile));
 
-biomass_occ = S.data.biomass_occupation;
-bulk_DO     = S.data.bulk_do;
+biomass_occ = S.data.biomass_occupation(:);
+bulk_DO     = S.data.bulk_do(:);
 
-% Make sure they are column vectors
-biomass_occ = biomass_occ(:);
-bulk_DO     = bulk_DO(:);
-t_img       = t_img(:);
-
-% Check lengths
 if length(biomass_occ) ~= length(t_img)
     error('Length of biomass occupation does not match imaging timestamps.');
 end
+
 if length(bulk_DO) ~= length(t_img)
     error('Length of bulk DO does not match imaging timestamps.');
 end
 
-%% -------- Define experiment time zero --------
+%% -------------------------------------------------
+% Read growth / erosion / net metrics
+%% -------------------------------------------------
+M = load(fullfile(growthMetricsPath, metricsMatFile));
+
+% Handle both possible save styles
+if isfield(M, 'resultStruct')
+    growth_pct  = M.resultStruct.growth_pct(:);
+    erosion_pct = M.resultStruct.erosion_pct(:);
+    net_pct     = M.resultStruct.net_pct(:);
+else
+    growth_pct  = M.growthPct(:);
+    erosion_pct = M.erosionPct(:);
+    net_pct     = M.netPct(:);
+end
+
+%% -------------------------------------------------
+% Define experiment time zero
+% IMPORTANT:
+% Use the same t0 for ALL panels so they align correctly
+%% -------------------------------------------------
 t0 = min([t_q; t_p; t_img]);
 
 hours_q   = hours(t_q   - t0);
 hours_p   = hours(t_p   - t0);
 hours_img = hours(t_img - t0);
 
-%% -------- Plot --------
-figure('Color','w','Position',[100 80 1250 700]);
+% Growth/erosion/net correspond to intervals between images,
+% so they align with image #2 ... #N
+hours_interval = hours_img(2:end);
+
+if length(growth_pct) ~= length(hours_interval)
+    error('Length of growth_pct does not match image intervals.');
+end
+if length(erosion_pct) ~= length(hours_interval)
+    error('Length of erosion_pct does not match image intervals.');
+end
+if length(net_pct) ~= length(hours_interval)
+    error('Length of net_pct does not match image intervals.');
+end
 
 %% -------------------------------------------------
-% OPTIONAL: crop to first 100 hours
+% OPTIONAL: crop to first X hours
+% Uncomment if needed
 %% -------------------------------------------------
-% mask_q   = hours_q   <= 100;
-% mask_p   = hours_p   <= 100;
-% mask_img = hours_img <= 100;
-% 
+% maxHour = 100;
+%
+% mask_q   = hours_q <= maxHour;
+% mask_p   = hours_p <= maxHour;
+% mask_img = hours_img <= maxHour;
+% mask_int = hours_interval <= maxHour;
+%
 % hours_q_plot   = hours_q(mask_q);
 % q_smooth_plot  = q_smooth(mask_q);
-% 
+%
 % hours_p_plot   = hours_p(mask_p);
 % dp_smooth_plot = dp_smooth(mask_p);
-% 
+%
 % hours_img_plot   = hours_img(mask_img);
 % biomass_occ_plot = biomass_occ(mask_img);
 % bulk_DO_plot     = bulk_DO(mask_img);
+%
+% hours_int_plot   = hours_interval(mask_int);
+% growth_plot      = growth_pct(mask_int);
+% erosion_plot     = erosion_pct(mask_int);
+% net_plot         = net_pct(mask_int);
 
 %% -------------------------------------------------
-% Make image labels: t00, t01, t02, ...
+% Use full range by default
+%% -------------------------------------------------
+hours_q_plot   = hours_q;
+q_smooth_plot  = q_smooth;
+
+hours_p_plot   = hours_p;
+dp_smooth_plot = dp_smooth;
+
+hours_img_plot   = hours_img;
+biomass_occ_plot = biomass_occ;
+bulk_DO_plot     = bulk_DO;
+
+hours_int_plot = hours_interval;
+growth_plot    = growth_pct;
+erosion_plot   = erosion_pct;
+net_plot       = net_pct;
+
+%% -------------------------------------------------
+% Image labels
 %% -------------------------------------------------
 step = 10;
-idx = 1:step:length(hours_img);
-imgLabels = arrayfun(@(k) sprintf('#%02d',k-1), idx, 'UniformOutput', false);
+idx = 1:step:length(hours_img_plot);
+imgLabels = arrayfun(@(k) sprintf('#%02d', k-1), idx, 'UniformOutput', false);
 
 %% -------------------------------------------------
-% Layout
+% Plot
 %% -------------------------------------------------
-tl = tiledlayout(2,1,'TileSpacing','loose','Padding','compact');
+figure('Color','w','Position',[100 80 1250 950]);
+
+tl = tiledlayout(3,1,'TileSpacing','loose','Padding','compact');
 
 %% =================================================
-% TOP PLOT: Biomass occupation + Bulk DO
+% TOP PLOT: Growth / Erosion / Net
 %% =================================================
 axTop = nexttile(tl,1);
 
-yyaxis(axTop,'left')
+hGrowth = plot(axTop, hours_int_plot, growth_plot, '-o', ...
+    'Color', [0 0.60 0], ...
+    'MarkerFaceColor', [0 0.60 0], ...
+    'MarkerSize', 4, ...
+    'LineWidth', 1.0);
+hold(axTop, 'on');
 
-bio_norm = biomass_occ ./ max(biomass_occ, [], 'omitnan');
-plot(axTop, hours_img, bio_norm, '-o', ...
+hErosion = plot(axTop, hours_int_plot, erosion_plot, '-s', ...
+    'Color', [0.85 0.20 0.20], ...
+    'MarkerFaceColor', [0.85 0.20 0.20], ...
+    'MarkerSize', 4, ...
+    'LineWidth', 1.0);
+
+hNet = plot(axTop, hours_int_plot, net_plot, '-d', ...
+    'Color', [0.20 0.20 0.20], ...
+    'MarkerFaceColor', [0.20 0.20 0.20], ...
+    'MarkerSize', 4, ...
+    'LineWidth', 1.0);
+
+hZero = yline(axTop, 0, '--k', 'LineWidth', 0.75);
+
+% Force unwanted objects out of legend
+hZero.Annotation.LegendInformation.IconDisplayStyle = 'off';
+
+ylabel(axTop, 'Change [% of previous biomass]', ...
+    'FontSize', 12, 'FontWeight', 'bold');
+
+grid(axTop, 'on');
+box(axTop, 'on');
+axTop.XTickLabel = [];
+axTop.XTick = [];
+
+% Create legend ONLY from desired handles
+lgdTop = legend(axTop, [hGrowth, hErosion, hNet], ...
+    {'Growth','Erosion','Net'}, ...
+    'Location', 'best', ...
+    'FontSize', 10);
+
+% Stop MATLAB from adding later objects automatically
+lgdTop.AutoUpdate = 'off';
+
+%% =================================================
+% MIDDLE PLOT: Biomass occupation + Bulk DO
+%% =================================================
+axMid = nexttile(tl,2);
+
+yyaxis(axMid, 'left')
+
+bio_norm_plot = biomass_occ_plot ./ max(biomass_occ_plot, [], 'omitnan');
+
+plot(axMid, hours_img_plot, bio_norm_plot, '-o', ...
     'Color', [1 0.5 0], ...
     'MarkerFaceColor', [1 0.5 0], ...
     'MarkerSize', 4, ...
     'LineWidth', 0.5);
-ylabel(axTop,'Normalized biomass (bio / max)','Color',[1 0.5 0],'FontSize',12,'FontWeight','bold');
-axTop.YColor = [1 0.5 0];
 
-yyaxis(axTop,'right')
-plot(axTop, hours_img, bulk_DO, '-o', ...
+ylabel(axMid, 'Normalized biomass (bio / max)', ...
+    'Color', [1 0.5 0], 'FontSize', 12, 'FontWeight', 'bold');
+axMid.YColor = [1 0.5 0];
+
+yyaxis(axMid, 'right')
+
+plot(axMid, hours_img_plot, bulk_DO_plot, '-o', ...
     'Color', [0 0.45 0.74], ...
     'MarkerFaceColor', [0 0.45 0.74], ...
     'MarkerSize', 4, ...
     'LineWidth', 0.5);
-ylabel(axTop,'Bulk DO [mg/L]','Color',[0 0.45 0.74],'FontSize',12,'FontWeight','bold');
-axTop.YColor = [0 0.45 0.74];
 
-grid(axTop,'on');
-box(axTop,'on');
-axTop.XTickLabel = [];   % hide bottom x-labels on top subplot
-axTop.XTick = [];
+ylabel(axMid, 'Bulk DO [mg/L]', ...
+    'Color', [0 0.45 0.74], 'FontSize', 12, 'FontWeight', 'bold');
+axMid.YColor = [0 0.45 0.74];
+
+grid(axMid, 'on');
+box(axMid, 'on');
+axMid.XTickLabel = [];
+axMid.XTick = [];
 
 %% =================================================
 % BOTTOM PLOT: Flowrate + Pressure
 %% =================================================
-axBot = nexttile(tl,2);
+axBot = nexttile(tl,3);
 
-yyaxis(axBot,'left')
-plot(axBot, hours_q, q_smooth, ...
+yyaxis(axBot, 'left')
+
+plot(axBot, hours_q_plot, q_smooth_plot, ...
     'Color', [0 0.35 0], ...
     'LineWidth', 2);
-ylabel(axBot,'Flowrate [µL/min]','Color',[0 0.35 0],'FontSize',12,'FontWeight','bold');
+
+ylabel(axBot, 'Flowrate [\muL/min]', ...
+    'Color', [0 0.35 0], 'FontSize', 12, 'FontWeight', 'bold');
 axBot.YColor = [0 0.35 0];
 
-yyaxis(axBot,'right')
-plot(axBot, hours_p, dp_smooth, ...
+yyaxis(axBot, 'right')
+
+plot(axBot, hours_p_plot, dp_smooth_plot, ...
     'Color', [1 0 0], ...
     'LineWidth', 0.5);
-ylabel(axBot,'Pressure [mbar]','Color',[1 0 0],'FontSize',12,'FontWeight','bold');
+
+ylabel(axBot, 'Pressure [mbar]', ...
+    'Color', [1 0 0], 'FontSize', 12, 'FontWeight', 'bold');
 axBot.YColor = [1 0 0];
 
-xlabel(axBot,'Experiment time (hours)');
-grid(axBot,'on');
-box(axBot,'on');
+xlabel(axBot, 'Experiment time (hours)', ...
+    'FontSize', 12, 'FontWeight', 'bold');
+
+grid(axBot, 'on');
+box(axBot, 'on');
 
 %% -------------------------------------------------
 % Link x axes and define x range
 %% -------------------------------------------------
-linkaxes([axTop axBot],'x');
+linkaxes([axTop axMid axBot], 'x');
 
 xMin = 0;
-xMax = max([hours_q(:); hours_p(:); hours_img(:)]);
-xlim(axTop,[xMin xMax]);
-xlim(axBot,[xMin xMax]);
+xMax = max([hours_q_plot(:); hours_p_plot(:); hours_img_plot(:); hours_int_plot(:)]);
+
+xlim(axTop, [xMin xMax]);
+xlim(axMid, [xMin xMax]);
+xlim(axBot, [xMin xMax]);
 
 %% -------------------------------------------------
-% Add vertical lines at every imaging time
-% Draw on BOTH axes so they visually continue through the figure
+% Add vertical lines at imaging times
 %% -------------------------------------------------
 for i = idx
-    xline(axTop, hours_img(i), ':', ...
-        'Color',[0.6 0.6 0.6], 'LineWidth',2);
+    hx1 = xline(axTop, hours_img_plot(i), ':', ...
+        'Color', [0.6 0.6 0.6], 'LineWidth', 2);
+    hx1.Annotation.LegendInformation.IconDisplayStyle = 'off';
 
-    xline(axBot, hours_img(i), ':', ...
-        'Color',[0.6 0.6 0.6], 'LineWidth',2);
+    hx2 = xline(axMid, hours_img_plot(i), ':', ...
+        'Color', [0.6 0.6 0.6], 'LineWidth', 2);
+    hx2.Annotation.LegendInformation.IconDisplayStyle = 'off';
+
+    hx3 = xline(axBot, hours_img_plot(i), ':', ...
+        'Color', [0.6 0.6 0.6], 'LineWidth', 2);
+    hx3.Annotation.LegendInformation.IconDisplayStyle = 'off';
 end
 
 %% -------------------------------------------------
-% Create a top x-axis for image numbers
+% Create top x-axis for image numbers
 %% -------------------------------------------------
 axTopX = axes('Units','normalized', ...
     'Position', axTop.Position, ...
@@ -212,17 +365,17 @@ axTopX = axes('Units','normalized', ...
     'HitTest', 'off', ...
     'HandleVisibility', 'off');
 
-axTopX.XTick = hours_img(idx);
+axTopX.XTick = hours_img_plot(idx);
 axTopX.XTickLabel = imgLabels;
 axTopX.TickLength = [0.004 0.004];
-xlabel(axTopX,'Image number');
+xlabel(axTopX, 'Image number');
 
-% Hide normal x-axis of the top plot
+% Hide normal x-axis of top plot
 axTop.XTick = [];
 axTop.XColor = 'none';
 
-% Keep x-limits the same
-linkaxes([axTop axTopX axBot],'x');
+% Link overlay too
+linkaxes([axTop axTopX axMid axBot], 'x');
 
 % Force exact initial alignment
 axTopX.Position = axTop.Position;
@@ -240,47 +393,40 @@ xlimListener = addlistener(axTop, 'XLim', 'PostSet', ...
 setappdata(gcf, 'TopAxisPositionListener', posListener);
 setappdata(gcf, 'TopAxisXLimListener', xlimListener);
 
-%% -------------------------------------------------
-% Keep bottom hours axis normal, top plot bottom x hidden
-%% -------------------------------------------------
+% Hide axle on top panel
 axTop.XRuler.Axle.Visible = 'off';
 
-%% -------------------------------------------------
-% Make sure the top image-number axis stays aligned if figure redraws
-%% -------------------------------------------------
-linkaxes([axTop axTopX axBot],'x');
-
+% Keep overlay aligned after resizing
 fig = gcf;
 fig.SizeChangedFcn = @(~,~) updateTopOverlay(axTop, axTopX);
 
-updateTopOverlay(axTop, axTopX);   % run once
+updateTopOverlay(axTop, axTopX);
 drawnow
-updateTopOverlay(axTop, axTopX);   % run again after layout settles
-
-function updateTopOverlay(axTop, axTopX)
-    drawnow limitrate
-    axTopX.Position = axTop.Position;
-    axTopX.XLim = axTop.XLim;
-end
-
+updateTopOverlay(axTop, axTopX);
 
 %% -------------------------------------------------
 % OPTIONAL: set independent y-limits
 % Uncomment and adjust if needed
 %% -------------------------------------------------
-% yyaxis(axTop,'left');  ylim(axTop,[0 1]);     % biomass
-% yyaxis(axTop,'right'); ylim(axTop,[0 10]);    % bulk DO
-yyaxis(axBot,'left');  ylim(axBot,[-2 13]);    % flowrate
-yyaxis(axBot,'right'); ylim(axBot,[2 10]);   % pressure
+% ylim(axTop, [-20 20]);
+% yyaxis(axMid,'left');  ylim(axMid, [0 1]);
+% yyaxis(axMid,'right'); ylim(axMid, [0 10]);
+% yyaxis(axBot,'left');  ylim(axBot, [-2 13]);
+% yyaxis(axBot,'right'); ylim(axBot, [2 10]);
 
 %% -------------------------------------------------
-% OPTIONAL: cleaner legend
+% Save figure
 %% -------------------------------------------------
-%legend(axTop, {'Biomass occupation','Bulk DO'}, 'Location','southeast','FontSize',10, FontWeight='bold');
-%legend(axBot, {'Flowrate','Pressure'}, 'Location','northeast','FontSize',10, FontWeight='bold');
+exportgraphics(gcf, fullfile(plotPath, 'combined_experiment_plot_3panels.tif'), ...
+    'Resolution', 300);
 
+fprintf('Saved plot in:\n%s\n', plotPath);
 
-%% -------- Optional: save figure --------
-
-%saveas(gcf, 'combined_experiment_plot.png');
-exportgraphics(gcf, fullfile(plotPath,'combined_experiment_plot.tif'), 'Resolution', 300);
+%% -------------------------------------------------
+% Helper function
+%% -------------------------------------------------
+function updateTopOverlay(axTop, axTopX)
+    drawnow limitrate
+    axTopX.Position = axTop.Position;
+    axTopX.XLim = axTop.XLim;
+end
