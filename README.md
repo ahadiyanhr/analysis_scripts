@@ -218,14 +218,18 @@ MainFolderProject/
   processed_data/biomass_density_overlay/
   ```
 
-### **%Growth and % Erosion Calculation**
+### **%Growth and %Erosion Calculation**
 - Open and run in MATLAB:
   ```
   growth_erosion_cal.m
   ```
-- Once you run this m file is saved in:
+- Once you run this m file, the MAT file including %Growth and %Erosion are saved in:
   ```
   processed_data/growth_erosion/
+  ```
+- Also all Growth and Erosion images generate and saved in:
+  ```
+  processed_images/growth_erosion_images/
   ```
 
 ### **Generating Combined Plot**
