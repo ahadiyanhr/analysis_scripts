@@ -38,6 +38,7 @@ mkdir "processed_data\do_heatmap"
 mkdir "processed_data\bioOccu_bulkDO"
 mkdir "processed_data\plots"
 mkdir "processed_data\pq_cleaned_data"
+mkdir "processed_data\growth_erosion"
 
 :: --- Create Processed Images Folders ---
 echo.
@@ -51,7 +52,6 @@ mkdir "processed_images\heatmap_images"
 mkdir "processed_images\biomass_density_overlay"
 mkdir "processed_images\growth_erosion_images\growth"
 mkdir "processed_images\growth_erosion_images\erosion"
-mkdir "processed_images\growth_erosion_images\net"
 
 :: --- Create Logs Folder ---
 echo.
