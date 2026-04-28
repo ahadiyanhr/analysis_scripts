@@ -39,6 +39,7 @@ mkdir "processed_data\bioOccu_bulkDO"
 mkdir "processed_data\plots"
 mkdir "processed_data\pq_cleaned_data"
 mkdir "processed_data\growth_erosion"
+mkdir "processed_data\biomass_age"
 
 :: --- Create Processed Images Folders ---
 echo.
