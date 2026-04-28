@@ -232,10 +232,35 @@ MainFolderProject/
   processed_images/growth_erosion_images/
   ```
 
+### **Biomass Age Calculation**
+- Open and run in MATLAB:
+  ```
+  biomass_age_cal.m
+  ```
+- Once you run this m file, the MAT files are saved in:
+  ```
+  processed_data/biomass_age/
+  ```
+- For plotting Ridgeline and Density figure, go to Data Plotting, Biomass Age Plot
+
+---
+
+## **Data Plotting**
+
 ### **Generating Combined Plot**
 - For having a combined plot (three panel) (%growth, %erosion, %net, normalized biomass occupation, Bulk DO, Flowrate, and DeltaP), run in MATLAB:
   ```
   plot_data.m
+  ```
+- Then see the plot in below directory:
+   ```
+  processed_data/plots/
+  ```
+
+### **Biomass Age Plot**
+- For Ridgeline and Density plots, run in MATLAB:
+  ```
+  plot_biomass_age.m
   ```
 - Then see the plot in below directory:
    ```
