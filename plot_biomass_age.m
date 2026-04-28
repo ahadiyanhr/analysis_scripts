@@ -8,6 +8,8 @@ mainPath = pwd;
 cd(mainPath); cd('../');
 projectPath = pwd;
 
+plotFolder = fullfile(projectPath, 'processed_data', 'plots');
+
 ageFolder = fullfile(projectPath, ...
     'processed_data', 'biomass_age');
 
@@ -53,7 +55,7 @@ x = linspace(0, maxAge, 200);
 
 %% -------- Create ridgeline plot --------
 
-figure('Color','w');
+fig1 = figure('Color','w');
 hold on;
 
 offset = 0;                % vertical stacking offset
@@ -112,10 +114,11 @@ caxis([min(allTimes) max(allTimes)]);
 grid on;
 box on;
 
+saveas(fig1, fullfile(plotFolder, 'biomass_age_ridgeline.png'));
 
 %% Overlay normalized density plots for all timestamps (color = time)
 
-figure('Color','w');
+fig2 = figure('Color','w');
 hold on;
 
 % Normalize time to [0,1] for colormap
@@ -169,9 +172,11 @@ caxis([min(allTimes) max(allTimes)]);
 grid on;
 box on;
 
+saveas(fig2, fullfile(plotFolder, 'biomass_age_norm_density.png'));
+
 %% Overlay density plots for all timestamps (color = time)
 
-figure('Color','w');
+fig3 = figure('Color','w');
 hold on;
 
 % Normalize time to [0,1] for colormap
@@ -221,3 +226,5 @@ caxis([min(allTimes) max(allTimes)]);
 
 grid on;
 box on;
+
+saveas(fig3, fullfile(plotFolder, 'biomass_age_density.png'));
