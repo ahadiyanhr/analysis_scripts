@@ -9,14 +9,13 @@
 % This script removes all still-active >0 biomass ages from the analysis.
 % It only uses NaN pixels, then extracts their age from the previous frame.
 
+clear; clc; close all;
+
 %% -------- User settings --------
 
 startFile = 2;        % Start from 2 because frame 1 has no previous ageFrame
 spaceData = 18;       % Space between data frames
 maxPointsPerFrame = 1e5;
-
-
-clear; clc; close all;
 
 %% -------- Paths --------
 
@@ -163,12 +162,12 @@ for k = 1:nValid
 end
 
 xlabel('Completed biomass age before sloughing (hr)');
-ylabel('Experiment time progression (stacked)');
+ylabel('Density distribution (stacked)');
 title('Ridgeline plot of completed biomass ages');
 
 colormap(jet);
 cb = colorbar;
-cb.Label.String = 'Experiment time (hr)';
+cb.Label.String = 'Image #';
 caxis([min(allTimesValid) max(allTimesValid)]);
 
 grid on;
