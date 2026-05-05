@@ -33,8 +33,7 @@ MainFolderProject/
 │   ├── background_subtracted/       # All background subtracted images (ready for thresholding).
 │   ├── biomass_density_overlay/     # For biomass density overlay images generated from background subtracted images
 │   ├── thresholded_images/          # For images that have been thresholded
-│       └── subfolders/              # For biomass occupation images based on different thresholding methods
-│           └── thresholding_parameters.txt   # Saved thresholding parameters
+│       └── sensitivity_0.##/        # For thresholded images based on different senstivity values
 │   ├── growth_erosion_images/       # For the biomass growth and erosion images
 │       ├── growth/                  # For biomass growth images
 │       └── erosion/                 # For biomass erosion images
