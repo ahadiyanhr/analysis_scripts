@@ -144,35 +144,25 @@ MainFolderProject/
   logs/transform_matrices.txt
   ```
 
-### **Registration**
-- Open and run in MATLAB:
+### **Registration and Thresholding**
+- Open below script in MATLAB:
   ```
   registration.m
   ```
+- Set **biofilm thresholding sensitivity** (default value is 0.5) and then run the code.
 - For manual alignment, select four corresponding points, located at the four corners, in both images.
 > *Note:* To proceed after making a selection, dismiss the window.
 - After applying the mask, **compare the alignment**. If it looks good, choose **'YES'**.
-- All aligned images are saved in:
+> *Note:* all alignment info saved in "logs/manual_alignment.mat" for next visit.
+- All aligned BF and FRED images are saved in:
   ```
   processed_images/registered_images/
   ```
+- Also, all Thresholded images are saved in:
+  ```
+  processed_images/thresholded_images/sensitivity_0.##_main_results
+  ```
   
-### **Background Subtraction and Thresholding**
-- Open and run this Fiji ImageJ macro:
-  ```
-  BackSub_Threshoding.ijm
-  ```
-> *Note:* Due to issues with admin access to shared drive, all background subtracted and Thresholded images are saved on your Desktop in below folders:
-  ```
-  ... YOUR Desktop/background_subtracted
-  ... YOUR Desktop/thresholded_images
-  ```
-> These two folders should copy into main experiment folder as below:
-  ```
-  processed_images/background_subtracted/
-  processed_images/thresholded_images/
-  ```
-
 ### **DO Ratio and Distribution Heatmap**
 - Open and run in MATLAB:
   ```
