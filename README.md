@@ -190,11 +190,11 @@ MainFolderProject/
 ### **Biomass Occupation and Bulk DO Calculations**
 - Open and run in MATLAB:
   ```
-  bioOccu_bulkDO.m
+  biomass_occupation_bulkDO_cal.m
   ```
 - Once you run this m file, biomass occupation and bulk DO data are saved in:
   ```
-  processed_data/bioOccu_bulkDO/
+  processed_data/biomass_occupation_bulkDO/
   ```
 
 ### **Biomass Density Overlay**
