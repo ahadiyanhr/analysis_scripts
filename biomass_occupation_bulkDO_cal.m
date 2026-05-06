@@ -50,14 +50,18 @@ if nFiles == 0
     return;
 end
 
-% After dir() calls, sort both by name
-matFiles     = matFiles(~[matFiles.isdir]);
-matFiles     = sortrows(struct2table(matFiles), 'name');
-matFiles     = table2struct(matFiles);
+% Sort matFiles numerically
+matFiles = matFiles(~[matFiles.isdir]);
+matNums  = arrayfun(@(f) sscanf(f.name, 'thresholded_%d.mat'), matFiles);
+[~, idx] = sort(matNums);
+matFiles = matFiles(idx);
 
+% Sort mapped_files numerically
 mapped_files = mapped_files(~[mapped_files.isdir]);
-mapped_files = sortrows(struct2table(mapped_files), 'name');
-mapped_files = table2struct(mapped_files);
+% Adjust the format string below to match your actual mapped filename pattern
+mapNums  = arrayfun(@(f) sscanf(f.name, 'do_mapped_t%d.mat'), mapped_files);
+[~, idx] = sort(mapNums);
+mapped_files = mapped_files(idx);
 
 % Initialize struct to hold results
 data = struct();
@@ -67,20 +71,18 @@ data.bulk_do = mean(mappedFile.mapped(:));
 
 data.image_names = {};
 fprintf('\n--- Processing %d frames ---\n', nFiles);
-
 % Loop over files
 for k = 1:nFiles
     matData = load(fullfile(mainThreshPath, matFiles(k).name));
     fields  = fieldnames(matData);
     mat     = matData.(fields{1});
     mappedFile = load(fullfile(doMappedPath, mapped_files(k+1).name));
-  
     biomass_percent = (sum(~isnan(mat(:))) / total_pore_pixels) * 100;
     data.biomass_occupation(end+1) = biomass_percent;
     data.bulk_do(end+1) = mean(mappedFile.mapped(:));
     data.image_names{end+1} = matFiles(k).name;
 
-    fprintf('Biomass: %.2f%%  |  Bulk DO: %.4f\n', biomass_percent, mean(mappedFile.mapped(:)));
+    fprintf('Processed %s biomass: %.2f%%  | %s Bulk DO: %.4f\n', matFiles(k).name, biomass_percent, mapped_files(k+1).name, mean(mappedFile.mapped(:)));
 
 end
     
