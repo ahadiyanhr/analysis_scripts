@@ -1,8 +1,8 @@
 %% Three-panel combined plot
 % TOP:
-%   - Growth [% of previous biomass]
-%   - Erosion [% of previous biomass]
-%   - Net [% of previous biomass]
+%   - Growth [% of pore area]
+%   - Erosion [% of pore area]
+%   - Net [% of pore area]
 %
 % MIDDLE:
 %   - Normalized biomass occupation
@@ -45,12 +45,12 @@ logsPath = pwd;
 
 % Biomass and BulkDO path
 cd(projectPath);
-cd('processed_data\bioOccu_bulkDO\');
+cd('processed_data\biomass_occupation_bulkDO\');
 bioDOPath = pwd;
 
 % Growth/Erosion metrics path
 cd(projectPath);
-cd('processed_data\growth_erosion\');
+cd('processed_data\growth_erosion_timepoints\');
 growthMetricsPath = pwd;
 
 % Plots path
@@ -64,8 +64,15 @@ plotPath = pwd;
 flowrateFile   = 'cleaned_flowrate.csv';
 pressFile      = 'cleaned_pressures.csv';
 timeFile       = 'imaging_timestamp.xlsx';
-bioMatFile     = 'biomass_images_01.mat';
 metricsMatFile = 'growth_erosion.mat';
+
+listing = dir(fullfile(bioDOPath, 'sensitivity_*_main_results.mat'));
+
+if isempty(listing)
+    error('No matching sensitivity MAT file found in:\n%s', bioDOPath);
+end
+
+bioMatFile = listing(1).name;   % take the first match
 
 %% -------------------------------------------------
 % Read flowrate data
@@ -137,9 +144,14 @@ hours_q   = hours(t_q   - t0);
 hours_p   = hours(t_p   - t0);
 hours_img = hours(t_img - t0);
 
-% Growth/erosion/net correspond to intervals between images,
-% so they align with image #2 ... #N
-hours_interval = hours_img(2:end);
+% Growth/erosion/net correspond to intervals between THRESHOLDED images.
+% Thresholded images start at image #2 (0-based) = t_img(3) in MATLAB.
+% Each interval is tagged to its end frame:
+%   interval 1: t_img(3) → t_img(4)  → tagged to t_img(4)
+%   interval 2: t_img(4) → t_img(5)  → tagged to t_img(5)  ...
+% So the correct time axis for metrics is hours_img(4:end).
+threshOffset   = 1;                              % # of leading images skipped
+hours_interval = hours_img((threshOffset+2):end);
 
 if length(growth_pct) ~= length(hours_interval)
     error('Length of growth_pct does not match image intervals.');
@@ -238,7 +250,7 @@ hZero = yline(axTop, 0, '--k', 'LineWidth', 0.75);
 % Force unwanted objects out of legend
 hZero.Annotation.LegendInformation.IconDisplayStyle = 'off';
 
-ylabel(axTop, 'Change [% of previous biomass]', ...
+ylabel(axTop, 'Change [% of pore area]', ...
     'FontSize', 12, 'FontWeight', 'bold');
 
 grid(axTop, 'on');
@@ -262,7 +274,7 @@ axMid = nexttile(tl,2);
 
 yyaxis(axMid, 'left')
 
-bio_norm_plot = biomass_occ_plot ./ max(biomass_occ_plot, [], 'omitnan');
+bio_norm_plot = biomass_occ_plot;
 
 plot(axMid, hours_img_plot, bio_norm_plot, '-o', ...
     'Color', [1 0.5 0], ...
@@ -270,7 +282,7 @@ plot(axMid, hours_img_plot, bio_norm_plot, '-o', ...
     'MarkerSize', 4, ...
     'LineWidth', 0.5);
 
-ylabel(axMid, 'Normalized biomass (bio / max)', ...
+ylabel(axMid, 'Biomass Occupation (% of pore area)', ...
     'Color', [1 0.5 0], 'FontSize', 12, 'FontWeight', 'bold');
 axMid.YColor = [1 0.5 0];
 
