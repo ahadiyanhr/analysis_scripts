@@ -10,10 +10,12 @@ cd(mainPath);
 cd('../');
 projectPath = pwd;
 
-% Subtracted images path
+% Thresholded MAT files path
 cd(projectPath);
-cd('processed_images\background_subtracted\');
-backSunPath = pwd;
+cd('processed_images\thresholded_images\');
+threshRootPath = pwd;
+mainResultsFolder = dir(fullfile(threshRootPath, '*_main_results'));
+threshPath = fullfile(threshRootPath, mainResultsFolder(1).name);
 
 % Growth folder
 cd(projectPath);
@@ -30,27 +32,39 @@ cd(projectPath);
 cd('processed_images\growth_erosion_images\net_visual\');
 netPath = pwd;
 
+% Add this in the Setup section
+cd(projectPath);
+cd('logs\');
+logsPath = pwd;
+
 % mat file
 cd(projectPath);
-cd('processed_data\growth_erosion');
+cd('processed_data\growth_erosion_timepoints');
 matFolder = pwd;
 
-% File pattern
-filePattern = '*.tif';
+% File pattern  (*** changed from *.tif ***)
+filePattern = '*.mat';
 
 % Optional preprocessing
-smoothSigma = 0;          % 0 = no smoothing, try 1 if noisy
-thresholdDiff = 0.00;     % ignore tiny changes below this normalized value
-useCommonCrop = true;     % crop all images to common minimum size
-saveAsUint16 = true;      % save outputs as uint16 TIFF
+smoothSigma    = 0;      % 0 = no smoothing, try 1 if noisy
+thresholdDiff  = 0.00;   % ignore tiny changes below this normalised value
+useCommonCrop  = true;   % crop all images to common minimum size
+saveAsUint16   = true;   % save growth/erosion outputs as uint16 TIFF
+
+%% -------- LOAD MASK FILE --------
+% Load saved alignment
+alignmentFile = fullfile(logsPath, 'manual_alignment.mat');
+load(alignmentFile, 'GM_Final');
+disp('Loaded final Grain Mask from logs folder.');
+
 
 %% =========================
 % READ FILE LIST
 %% =========================
-imgFiles = dir(fullfile(backSunPath, filePattern));
+imgFiles = dir(fullfile(threshPath, filePattern));
 
 if isempty(imgFiles)
-    error('No TIFF files found in inputFolder.');
+    error('No MAT files found in threshPath.');
 end
 
 % Natural sort
@@ -61,44 +75,50 @@ imgFiles = imgFiles(sortIdx);
 nFrames = numel(imgFiles);
 
 if nFrames < 2
-    error('At least 2 TIFF images are required.');
+    error('At least 2 MAT files are required.');
 end
 
-fprintf('Found %d TIFF files.\n', nFrames);
+fprintf('Found %d MAT files.\n', nFrames);
 
 %% =========================
 % DETERMINE COMMON SIZE
 %% =========================
-% if useCommonCrop
-%     allRows = zeros(nFrames,1);
-%     allCols = zeros(nFrames,1);
-% 
-%     for k = 1:nFrames
-%         I = imread(fullfile(backSunPath, imgFiles(k).name));
-%         if ndims(I) > 2
-%             I = rgb2gray(I);
-%         end
-%         allRows(k) = size(I,1);
-%         allCols(k) = size(I,2);
-%     end
-% 
-%     minRows = min(allRows);
-%     minCols = min(allCols);
-% 
-%     fprintf('Cropping all images to common size: %d x %d\n', minRows, minCols);
-% else
-    I0 = imread(fullfile(backSunPath, imgFiles(1).name));
-    if ndims(I0) > 2
-        I0 = rgb2gray(I0);
-    end
-    minRows = size(I0,1);
-    minCols = size(I0,2);
+% Read first frame to get reference size.
+% (If your MAT files have different sizes, re-enable the full loop below.)
+I0 = loadMatImage(fullfile(threshPath, imgFiles(1).name));
+minRows = size(I0, 1);
+minCols = size(I0, 2);
+fprintf('Reference size from first frame: %d x %d\n', minRows, minCols);
+
+% ---- Full loop version (uncomment if frames have inconsistent sizes) ----
+% allRows = zeros(nFrames,1);  allCols = zeros(nFrames,1);
+% for k = 1:nFrames
+%     Itmp = loadMatImage(fullfile(threshPath, imgFiles(k).name));
+%     allRows(k) = size(Itmp,1);  allCols(k) = size(Itmp,2);
 % end
+% minRows = min(allRows);  minCols = min(allCols);
+% fprintf('Cropping all frames to common size: %d x %d\n', minRows, minCols);
+
+%% =========================
+% LOAD GRAIN MASK & COMPUTE TOTAL PORE AREA
+%% =========================
+% Convention: 0 = pore (open space), 1 = grain (solid).
+
+% Pore pixels are where the mask equals 0
+poreMask = sum(GM_Final(:) == 0);
+fprintf('Total pore pixels: %d\n', poreMask);
+totalPoreArea = sum(poreMask(:));   % scalar, fixed for whole experiment
+
+fprintf('Total pore area (pixels): %d\n', totalPoreArea);
+
+if totalPoreArea == 0
+    error('Grain mask has no pore pixels (no zeros found). Check mask convention.');
+end
 
 %% =========================
 % READ FIRST IMAGE
 %% =========================
-prev = readRawImage(fullfile(backSunPath, imgFiles(1).name), minRows, minCols, smoothSigma);
+prev = readMatFrame(fullfile(threshPath, imgFiles(1).name), minRows, minCols, smoothSigma);
 
 metricsMatFile = fullfile(matFolder, 'growth_erosion.mat');
 
@@ -112,14 +132,15 @@ erosionPct = nan(nFrames-1, 1, 'single');
 netPct     = nan(nFrames-1, 1, 'single');
 
 previousTotalBiomass = nan(nFrames-1, 1, 'single');
-prevImageName = strings(nFrames-1,1);
-currImageName = strings(nFrames-1,1);
+prevImageName = strings(nFrames-1, 1);
+currImageName = strings(nFrames-1, 1);
 
 % Save an initial MAT file so progress is preserved during the run
 save(metricsMatFile, ...
     'growthAbs', 'erosionAbs', 'netAbs', ...
     'growthPct', 'erosionPct', 'netPct', ...
     'previousTotalBiomass', 'prevImageName', 'currImageName', ...
+    'totalPoreArea', ...
     '-v7.3');
 
 fprintf('Metric results will be saved incrementally in:\n%s\n', metricsMatFile);
@@ -128,58 +149,51 @@ fprintf('Metric results will be saved incrementally in:\n%s\n', metricsMatFile);
 % LOOP THROUGH SUCCESSIVE PAIRS
 %% =========================
 for k = 2:nFrames
-    curr = readRawImage(fullfile(backSunPath, imgFiles(k).name), minRows, minCols, smoothSigma);
+    curr = readMatFrame(fullfile(threshPath, imgFiles(k).name), minRows, minCols, smoothSigma);
 
     % Difference image
+    % Both prev and curr are single, NaNs already replaced with 0,
+    % so values live in [0, 1].  Positive diff = growth, negative = erosion.
     dI = curr - prev;
 
     %% =========================
     % CREATE NET RGB IMAGE (visualization only)
     %% =========================
-    
-    % --- Visualization scaling (NOT scientific normalization) ---
-    % Use a robust percentile to avoid outliers blowing up contrast
-    pHigh = 99.5;   % adjust if needed
-    
+
+    % Robust percentile scaling to avoid outlier contrast collapse
+    pHigh    = 99.5;
     scaleVal = prctile(abs(dI(:)), pHigh);
     if scaleVal == 0
-        scaleVal = 1;  % avoid division by zero
+        scaleVal = 1;
     end
-    
-    % Scale to [0,1] for display only
+
     dI_scaled = dI / scaleVal;
-    dI_scaled = max(min(dI_scaled, 1), -1);  % clip to [-1, 1]
-    
-    % --- Build RGB channels ---
-    % Start with neutral gray
+    dI_scaled = max(min(dI_scaled, 1), -1);   % clip to [-1, 1]
+
+    % Build RGB channels (neutral gray background)
     grayLevel = 0.5;
-    
     R = ones(size(dI_scaled), 'single') * grayLevel;
     G = ones(size(dI_scaled), 'single') * grayLevel;
     B = ones(size(dI_scaled), 'single') * grayLevel;
-    
-    % Growth (positive) → green
+
+    % Growth (positive diff) → green
     posMask = dI_scaled > 0;
     G(posMask) = grayLevel + 0.5 * dI_scaled(posMask);
-    
-    % Erosion (negative) → red
+
+    % Erosion (negative diff) → red
     negMask = dI_scaled < 0;
     R(negMask) = grayLevel + 0.5 * abs(dI_scaled(negMask));
-    
-    % Optional: slightly reduce blue to enhance contrast
+
+    % Slightly reduce blue for contrast
     B(posMask | negMask) = grayLevel * 0.7;
-    
-    % Combine into RGB image
+
     netRGB = cat(3, R, G, B);
 
-    %% Resize for visualization
+    % Resize for visualization
     maxWidth = 2000;
-    
     [rows, cols, ~] = size(netRGB);
-    
     if cols > maxWidth
-        scaleFactor = maxWidth / cols;
-        netRGB = imresize(netRGB, scaleFactor, 'bilinear');
+        netRGB = imresize(netRGB, maxWidth / cols, 'bilinear');
     end
 
     % Apply small-change threshold if desired
@@ -187,58 +201,50 @@ for k = 2:nFrames
         dI(abs(dI) < thresholdDiff) = 0;
     end
 
-    % Growth = positive changes
-    growthImg = max(dI, 0);
-
-    % Erosion = magnitude of negative changes
+    % Growth = positive changes; Erosion = magnitude of negative changes
+    growthImg  = max( dI, 0);
     erosionImg = max(-dI, 0);
 
-    % Build output filenames
-    prevName = erase(imgFiles(k-1).name, '.tif');
-    currName = erase(imgFiles(k).name, '.tif');
+    % Build output filenames  (*** strip .mat instead of .tif ***)
+    prevName = erase(imgFiles(k-1).name, '.mat');
+    currName = erase(imgFiles(k).name,   '.mat');
 
-    growthName  = sprintf('growth_%s_to_%s.tif', prevName, currName);
+    growthName  = sprintf('growth_%s_to_%s.tif',  prevName, currName);
     erosionName = sprintf('erosion_%s_to_%s.tif', prevName, currName);
-    netName = sprintf('net_%s_to_%s.tif', prevName, currName);
+    netName     = sprintf('net_%s_to_%s.tif',     prevName, currName);
 
     % Save outputs
     if saveAsUint16
-        imwrite(toUint16Raw(growthImg),  fullfile(growthPath, growthName));
-        imwrite(toUint16Raw(erosionImg), fullfile(erosionPath, erosionName));
+        % *** scale [0,1] → [0,65535] before uint16 conversion ***
+        imwrite(toUint16Scaled(growthImg),  fullfile(growthPath, growthName));
+        imwrite(toUint16Scaled(erosionImg), fullfile(erosionPath, erosionName));
         netRGB_uint8 = uint8(255 * netRGB);
         imwrite(netRGB_uint8, fullfile(netPath, netName));
     else
         imwrite(growthImg,  fullfile(growthPath, growthName));
         imwrite(erosionImg, fullfile(erosionPath, erosionName));
-        imwrite(netRGB, fullfile(netPath, netName));
+        imwrite(netRGB,     fullfile(netPath, netName));
     end
-    
-    
-
-    
 
     fprintf('Saved pair %d/%d: %s -> %s\n', k-1, nFrames-1, imgFiles(k-1).name, imgFiles(k).name);
-    
+
     %% -------------------------
     % Calculate %growth, %erosion, %net for this image pair
-    % Denominator = total biomass in previous frame
+    % Denominator = total pore area from grain mask (fixed for whole experiment)
+    % so percentages express how much of the available pore space
+    % gained or lost biomass between frames.
     %% -------------------------
-    denom = sum(prev(:), 'omitnan');   % previous total biomass
-    gAbs  = sum(growthImg(:), 'omitnan');
+    prevBiomass = sum(prev(:), 'omitnan');   % store for reference only
+    gAbs  = sum(growthImg(:),  'omitnan');
     eAbs  = sum(erosionImg(:), 'omitnan');
     nAbs  = gAbs - eAbs;
 
-    if denom > 0
-        gPct = 100 * gAbs / denom;
-        ePct = 100 * eAbs / denom;
-        nPct = 100 * nAbs / denom;
-    else
-        gPct = NaN;
-        ePct = NaN;
-        nPct = NaN;
-    end
+    % Use totalPoreArea (grain mask) as the fixed denominator
+    gPct = 100 * gAbs / totalPoreArea;
+    ePct = 100 * eAbs / totalPoreArea;
+    nPct = 100 * nAbs / totalPoreArea;
 
-    % Store only scalar results for this interval
+    % Store scalar results for this interval
     idx = k - 1;
     growthAbs(idx)  = single(gAbs);
     erosionAbs(idx) = single(eAbs);
@@ -248,7 +254,7 @@ for k = 2:nFrames
     erosionPct(idx) = single(ePct);
     netPct(idx)     = single(nPct);
 
-    previousTotalBiomass(idx) = single(denom);
+    previousTotalBiomass(idx) = single(prevBiomass);
     prevImageName(idx) = string(imgFiles(k-1).name);
     currImageName(idx) = string(imgFiles(k).name);
 
@@ -257,6 +263,7 @@ for k = 2:nFrames
         'growthAbs', 'erosionAbs', 'netAbs', ...
         'growthPct', 'erosionPct', 'netPct', ...
         'previousTotalBiomass', 'prevImageName', 'currImageName', ...
+        'totalPoreArea', ...
         '-v7.3');
 
     % Terminal print for each calculation
@@ -265,10 +272,10 @@ for k = 2:nFrames
              idx, nFrames-1, imgFiles(k-1).name, imgFiles(k).name, ...
              gPct, ePct, nPct);
 
-    % Remove temporary scalar/image variables from memory
-    clear denom gAbs eAbs nAbs gPct ePct nPct idx growthImg erosionImg dI
+    % Free temporary variables
+    clear prevBiomass gAbs eAbs nAbs gPct ePct nPct idx growthImg erosionImg dI
 
-    % Move current to previous
+    % Advance frame
     prev = curr;
 end
 
@@ -279,17 +286,26 @@ fprintf('Erosion images saved in:\n%s\n', erosionPath);
 % HELPER FUNCTIONS
 %% =========================
 
-function I = readRawImage(imgPath, nRows, nCols, smoothSigma)
-    Iraw = imread(imgPath);
+% --- Low-level loader: returns raw double matrix from a MAT file ---
+function I = loadMatImage(matPath)
+    S      = load(matPath);
+    fields = fieldnames(S);
+    I      = double(S.(fields{1}));   % grab whichever variable is stored
+end
 
-    if ndims(Iraw) > 2
-        Iraw = rgb2gray(Iraw);
-    end
+% --- Full read + crop + NaN-fill + smooth (replaces readRawImage) ---
+function I = readMatFrame(matPath, nRows, nCols, smoothSigma)
+    Iraw = loadMatImage(matPath);
+
+    % Replace NaN (no-biomass background) with 0 so arithmetic is clean.
+    % A background→biomass transition will appear as positive diff (growth),
+    % and a biomass→background transition as negative diff (erosion).
+    Iraw(isnan(Iraw)) = 0;
 
     % Crop to common size
     Iraw = Iraw(1:nRows, 1:nCols);
 
-    % Convert only to single, NO normalization
+    % Work in single precision (matches original pipeline)
     I = single(Iraw);
 
     if smoothSigma > 0
@@ -297,14 +313,19 @@ function I = readRawImage(imgPath, nRows, nCols, smoothSigma)
     end
 end
 
-function out = toUint16Raw(I)
-    I = max(I, 0);              % no negative values for growth/erosion
-    I = min(I, 65535);          % clip only to uint16 range
+% --- Scale [0,1] float to full uint16 range for TIFF saving ---
+% (Original toUint16Raw assumed pixel values were already in [0,65535];
+%  MAT data lives in [0,1] so we multiply before casting.)
+function out = toUint16Scaled(I)
+    I   = max(I, 0);          % no negatives for growth/erosion images
+    I   = I * 65535;          % *** scale from [0,1] to uint16 range ***
+    I   = min(I, 65535);      % safety clip
     out = uint16(I);
 end
 
+% --- Natural sort (unchanged) ---
 function [sortedStrings, sortIndex] = sort_nat(strings)
     padded = regexprep(strings, '\d+', '${sprintf(''%010d'', str2double($0))}');
     [~, sortIndex] = sort(lower(padded));
-    sortedStrings = strings(sortIndex);
+    sortedStrings  = strings(sortIndex);
 end
