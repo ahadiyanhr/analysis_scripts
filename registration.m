@@ -157,9 +157,8 @@ REF_IMG_RGB = [];
 REF_GRAIN_INTENSITY = [];
 
 % Pre-allocate array to log drift factors for inspection
-drift_log = nan(nImgs_loop, 1);
-
 nImgs_loop = min(nImgs, nIMG);
+drift_log = nan(nImgs_loop, 1);
 
 for i = 1:nImgs_loop
     % Extract base filename for this image (e.g., 't00')
