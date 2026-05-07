@@ -14,8 +14,8 @@ clear; clc; close all;
 %% -------- User settings --------
 
 startFile = 2;        % Start from 2 because frame 1 has no previous ageFrame
-spaceData = 18;       % Space between data frames
-maxPointsPerFrame = 1e5;
+spaceData = 10;       % Space between data frames
+maxPointsPerFrame = inf;
 
 %% -------- Paths --------
 
@@ -117,153 +117,257 @@ fprintf('Using %d timestamps with completed sloughing ages.\n', nValid);
 
 %% -------- Define common x grid --------
 
-x = linspace(0, maxAge, 200);
+xMax = max(allTimesValid);   % experiment time axis, not biomass age axis
+x = linspace(0, xMax, 200);
 
-%% -------- Plot 1: Ridgeline plot --------
+% %% -------- Plot 1: Ridgeline plot --------
+% 
+% fig1 = figure('Color','w');
+% hold on;
+% 
+% offset = 0;
+% offsetStep = 1.2;
+% 
+% cmap = jet(nValid);
+% 
+% for k = 1:nValid
+% 
+%     ages = allAgesValid{k};
+% 
+%     if numel(ages) < 2
+%         continue;
+%     end
+% 
+%     try
+%         f = ksdensity(ages, x);
+%     catch
+%         counts = histcounts(ages, [x max(x)+eps], 'Normalization','pdf');
+%         f = counts;
+%     end
+% 
+%     if max(f) > 0
+%         f = f / max(f);
+%     end
+% 
+%     y = f + offset;
+% 
+%     plot(x, y, 'Color', cmap(k,:), 'LineWidth', 1.5);
+% 
+%     fill([x fliplr(x)], ...
+%          [offset*ones(size(x)) fliplr(y)], ...
+%          cmap(k,:), ...
+%          'FaceAlpha', 0.3, ...
+%          'EdgeColor', 'none');
+% 
+%     offset = offset + offsetStep;
+% end
+% 
+% xlabel('Completed biomass age before sloughing (hr)');
+% ylabel('Density distribution (stacked)');
+% title('Ridgeline plot of completed biomass ages');
+% 
+% colormap(jet);
+% cb = colorbar;
+% cb.Label.String = 'Image #';
+% caxis([min(allTimesValid) max(allTimesValid)]);
+% 
+% grid on;
+% box on;
+% 
+% saveas(fig1, fullfile(plotFolder, 'completed_biomass_age_ridgeline.png'));
 
-fig1 = figure('Color','w');
+%% -------- Plot 1: Ridgeline plot (corrected) --------
+
+fig1 = figure('Color', 'w');
 hold on;
 
-offset = 0;
+offset     = 0;
 offsetStep = 1.2;
 
-cmap = jet(nValid);
+% --- Distinguishable color palette (up to ~20 traces) ---
+baseColors = [
+    0.00  0.45  0.70;   % blue
+    0.85  0.33  0.10;   % orange-red
+    0.47  0.67  0.19;   % green
+    0.50  0.00  0.50;   % purple
+    0.93  0.69  0.13;   % gold
+    0.30  0.75  0.93;   % sky blue
+    0.64  0.08  0.18;   % dark red
+    0.00  0.60  0.50;   % teal
+    1.00  0.60  0.00;   % amber
+    0.49  0.18  0.56;   % violet
+    0.19  0.53  0.74;   % steel blue
+    0.74  0.74  0.13;   % olive
+    1.00  0.40  0.40;   % salmon
+    0.13  0.70  0.67;   % cyan-green
+    0.80  0.47  0.74;   % mauve
+    0.55  0.34  0.29;   % brown
+    0.57  0.82  0.31;   % lime
+    0.09  0.75  0.81;   % aqua
+    0.99  0.75  0.44;   % peach
+    0.39  0.58  0.93;   % periwinkle
+];
+
+nColors = size(baseColors, 1);
 
 for k = 1:nValid
 
     ages = allAgesValid{k};
+    tMax = allTimesValid(k);   % this image's experiment time (hr)
 
     if numel(ages) < 2
         continue;
     end
 
-    try
-        f = ksdensity(ages, x);
-    catch
-        counts = histcounts(ages, [x max(x)+eps], 'Normalization','pdf');
-        f = counts;
+    % --- 1. Clip x to [0, tMax] so the area never extends beyond its own time ---
+    xk = x(x <= allTimesValid(k));
+    if isempty(xk)
+        xk = linspace(0, allTimesValid(k), 50);
     end
 
+    % --- KDE on clipped grid ---
+    try
+        f = ksdensity(ages, xk);
+    catch
+        edges  = [xk, max(xk) + eps];
+        counts = histcounts(ages, edges, 'Normalization', 'pdf');
+        f      = counts;
+        if numel(f) < numel(xk)
+            f(end+1:numel(xk)) = 0;
+        end
+    end
+
+    % Normalize peak to 1
     if max(f) > 0
         f = f / max(f);
     end
 
-    y = f + offset;
+    y     = f + offset;
+    color = baseColors(mod(k-1, nColors) + 1, :);
 
-    plot(x, y, 'Color', cmap(k,:), 'LineWidth', 1.5);
+    % Ridge line
+    plot(xk, y, 'Color', color, 'LineWidth', 1.8);
 
-    fill([x fliplr(x)], ...
-         [offset*ones(size(x)) fliplr(y)], ...
-         cmap(k,:), ...
-         'FaceAlpha', 0.3, ...
-         'EdgeColor', 'none');
+    % Filled area from the local baseline (offset) up to the curve
+    fill([xk, fliplr(xk)], ...
+         [offset * ones(size(xk)), fliplr(y)], ...
+         color, 'FaceAlpha', 0.35, 'EdgeColor', 'none');
+
+    % --- 3. Time label at the right end of this area ---
+    text(tMax + maxAge * 0.015, ...        % just past the right edge
+         offset + 0.50, ...                % vertically centred in the ridge
+         sprintf('%.0f hr', tMax), ...
+         'Color',           color, ...
+         'FontSize',        9, ...
+         'FontWeight',      'bold', ...
+         'VerticalAlignment','middle', ...
+         'HorizontalAlignment','left');
 
     offset = offset + offsetStep;
 end
 
 xlabel('Completed biomass age before sloughing (hr)');
-ylabel('Density distribution (stacked)');
+ylabel('Density (stacked, normalized)');
 title('Ridgeline plot of completed biomass ages');
 
-colormap(jet);
-cb = colorbar;
-cb.Label.String = 'Image #';
-caxis([min(allTimesValid) max(allTimesValid)]);
+% Extend x-axis a little to make room for labels
+xlim([0, maxAge * 1.18]);
 
+% No colorbar — colors are self-labelled on the right
 grid on;
 box on;
 
 saveas(fig1, fullfile(plotFolder, 'completed_biomass_age_ridgeline.png'));
 
-%% -------- Plot 2: Overlay normalized density plots --------
-
-fig2 = figure('Color','w');
-hold on;
-
-tNorm = (allTimesValid - min(allTimesValid)) ./ ...
-        (max(allTimesValid) - min(allTimesValid));
-
-if all(isnan(tNorm)) || allTimesValid(1) == allTimesValid(end)
-    tNorm = zeros(size(allTimesValid));
-end
-
-cmap = jet(256);
-
-for k = 1:nValid
-
-    ages = allAgesValid{k};
-
-    if numel(ages) < 2
-        continue;
-    end
-
-    try
-        f = ksdensity(ages, x);
-    catch
-        counts = histcounts(ages, [x max(x)+eps], 'Normalization','pdf');
-        f = counts;
-    end
-
-    if max(f) > 0
-        f = f / max(f);
-    end
-
-    colorIdx = max(1, min(256, round(tNorm(k)*255)+1));
-    color = cmap(colorIdx, :);
-
-    plot(x, f, 'Color', color, 'LineWidth', 1.2);
-end
-
-xlabel('Completed biomass age before sloughing (hr)');
-ylabel('Normalized density');
-title('Completed biomass-age distribution over time');
-
-colormap(jet);
-cb = colorbar;
-cb.Label.String = 'Experiment time (hr)';
-caxis([min(allTimesValid) max(allTimesValid)]);
-
-grid on;
-box on;
-
-saveas(fig2, fullfile(plotFolder, 'completed_biomass_age_norm_density.png'));
-
-%% -------- Plot 3: Overlay raw density plots --------
-
-fig3 = figure('Color','w');
-hold on;
-
-for k = 1:nValid
-
-    ages = allAgesValid{k};
-
-    if numel(ages) < 2
-        continue;
-    end
-
-    try
-        f = ksdensity(ages, x);
-    catch
-        counts = histcounts(ages, [x max(x)+eps], 'Normalization','pdf');
-        f = counts;
-    end
-
-    colorIdx = max(1, min(256, round(tNorm(k)*255)+1));
-    color = cmap(colorIdx, :);
-
-    plot(x, f, 'Color', color, 'LineWidth', 1.2);
-end
-
-xlabel('Completed biomass age before sloughing (hr)');
-ylabel('Probability density');
-title('Completed biomass-age raw density over time');
-
-colormap(jet);
-cb = colorbar;
-cb.Label.String = 'Experiment time (hr)';
-caxis([min(allTimesValid) max(allTimesValid)]);
-
-grid on;
-box on;
-
-saveas(fig3, fullfile(plotFolder, 'completed_biomass_age_density.png'));
+% %% -------- Plot 2: Overlay normalized density plots --------
+% 
+% fig2 = figure('Color','w');
+% hold on;
+% 
+% tNorm = (allTimesValid - min(allTimesValid)) ./ ...
+%         (max(allTimesValid) - min(allTimesValid));
+% 
+% if all(isnan(tNorm)) || allTimesValid(1) == allTimesValid(end)
+%     tNorm = zeros(size(allTimesValid));
+% end
+% 
+% cmap = jet(256);
+% 
+% for k = 1:nValid
+% 
+%     ages = allAgesValid{k};
+% 
+%     if numel(ages) < 2
+%         continue;
+%     end
+% 
+%     try
+%         f = ksdensity(ages, x);
+%     catch
+%         counts = histcounts(ages, [x max(x)+eps], 'Normalization','pdf');
+%         f = counts;
+%     end
+% 
+%     if max(f) > 0
+%         f = f / max(f);
+%     end
+% 
+%     colorIdx = max(1, min(256, round(tNorm(k)*255)+1));
+%     color = cmap(colorIdx, :);
+% 
+%     plot(x, f, 'Color', color, 'LineWidth', 1.2);
+% end
+% 
+% xlabel('Completed biomass age before sloughing (hr)');
+% ylabel('Normalized density');
+% title('Completed biomass-age distribution over time');
+% 
+% colormap(jet);
+% cb = colorbar;
+% cb.Label.String = 'Experiment time (hr)';
+% caxis([min(allTimesValid) max(allTimesValid)]);
+% 
+% grid on;
+% box on;
+% 
+% saveas(fig2, fullfile(plotFolder, 'completed_biomass_age_norm_density.png'));
+% 
+% %% -------- Plot 3: Overlay raw density plots --------
+% 
+% fig3 = figure('Color','w');
+% hold on;
+% 
+% for k = 1:nValid
+% 
+%     ages = allAgesValid{k};
+% 
+%     if numel(ages) < 2
+%         continue;
+%     end
+% 
+%     try
+%         f = ksdensity(ages, x);
+%     catch
+%         counts = histcounts(ages, [x max(x)+eps], 'Normalization','pdf');
+%         f = counts;
+%     end
+% 
+%     colorIdx = max(1, min(256, round(tNorm(k)*255)+1));
+%     color = cmap(colorIdx, :);
+% 
+%     plot(x, f, 'Color', color, 'LineWidth', 1.2);
+% end
+% 
+% xlabel('Completed biomass age before sloughing (hr)');
+% ylabel('Probability density');
+% title('Completed biomass-age raw density over time');
+% 
+% colormap(jet);
+% cb = colorbar;
+% cb.Label.String = 'Experiment time (hr)';
+% caxis([min(allTimesValid) max(allTimesValid)]);
+% 
+% grid on;
+% box on;
+% 
+% saveas(fig3, fullfile(plotFolder, 'completed_biomass_age_density.png'));
