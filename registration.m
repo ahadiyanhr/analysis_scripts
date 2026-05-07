@@ -157,8 +157,9 @@ REF_IMG_RGB = [];
 REF_GRAIN_INTENSITY = [];
 
 % Pre-allocate array to log drift factors for inspection
-nImgs_loop = min(nImgs, nIMG);
 drift_log = nan(nImgs_loop, 1);
+
+nImgs_loop = min(nImgs, nIMG);
 
 for i = 1:nImgs_loop
     % Extract base filename for this image (e.g., 't00')
@@ -314,6 +315,6 @@ xlabel('Image #'); ylabel('Drift correction factor');
 title('Illumination drift correction factors');
 yline(1, '--k', 'No drift'); grid on;
 
-saveas(gcf, fullfile(plotPath, 'Illumination_drift_correction_factors.png'));
+saveas(gcf, fullfile(plotPath, 'Illumination_drift_correction_factors.pdf'));
 
 disp('All images registered, biofilm thresholded, and matrices saved.');
