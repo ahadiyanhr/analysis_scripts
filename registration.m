@@ -44,6 +44,11 @@ cd(projectPath);
 cd('logs\');
 logsPath = pwd;
 
+% Plots path
+cd(projectPath);
+cd('processed_data\plots\');
+plotPath = pwd;
+
 % Thresholded images path
 threshFolderName = sprintf('processed_images\\thresholded_images\\sensitivity_%s_main_results', strrep(num2str(sensitivity), '.', '.'));
 threshFolderFullPath = fullfile(projectPath, threshFolderName);
@@ -148,6 +153,12 @@ tforms = readAffineTransforms(tform0, logsPath);
 % T=0 reference image placeholder (captured on first iteration)
 REF_IMG_RGB = [];
 
+% *** DRIFT CORRECTION: reference grain intensity (set at T=0) ***
+REF_GRAIN_INTENSITY = [];
+
+% Pre-allocate array to log drift factors for inspection
+drift_log = nan(nImgs_loop, 1);
+
 nImgs_loop = min(nImgs, nIMG);
 
 for i = 1:nImgs_loop
@@ -194,6 +205,14 @@ for i = 1:nImgs_loop
             % Capture T=0 image as reference and skip biofilm processing
             if i == 1
                 REF_IMG_RGB = double(aligned_img);
+
+                % *** DRIFT CORRECTION: record median grain intensity at T=0 ***
+                % Grain pixels (GM_Final == 1) are solid and should not change;
+                % any change in their brightness across frames is pure illumination drift.
+                grain_mask_logical = logical(GM_Final);
+                REF_GRAIN_INTENSITY = median(double(aligned_img(grain_mask_logical)), 'all');
+                fprintf('T=0 reference grain intensity: %.2f\n', REF_GRAIN_INTENSITY);
+
                 disp('T=0 reference image captured.');
                 continue;
             end
@@ -207,6 +226,23 @@ for i = 1:nImgs_loop
             A_filled(zeroMask) = aligned_img(sub2ind(size(aligned_img), ...
                 nearestIdxRow(zeroMask), nearestIdxCol(zeroMask)));
             clear aligned_img img  % <-- no longer needed after filling
+
+            % *** DRIFT CORRECTION: Step 6.1b — Correct illumination drift  ***
+            % Compute the median intensity of grain pixels in the current frame.
+            % Grains are structurally stable, so any deviation from REF_GRAIN_INTENSITY
+            % is attributed entirely to illumination drift (lamp flicker, ND filter
+            % settling, camera gain shifts, etc.).  We scale the whole image by the
+            % ratio so that grain pixels recover their T=0 baseline before any
+            % biofilm-specific normalisation is applied.
+            grain_mask_logical  = logical(GM_Final);
+            curr_grain_intensity = median(double(A_filled(grain_mask_logical)), 'all');
+            drift_factor         = REF_GRAIN_INTENSITY / curr_grain_intensity;
+            drift_log(i)         = drift_factor;
+
+            % Clamp to uint16 range after scaling to avoid overflow
+            A_filled = uint16(min(double(A_filled) * drift_factor, 65535));
+            fprintf('  Frame %02d | grain intensity: %.2f | drift factor: %.4f\n', ...
+                    i-1, curr_grain_intensity, drift_factor);
 
             % --- Step 6.2: Normalize to T=0 reference ---
             BB = 65535 - REF_IMG_RGB;
@@ -267,5 +303,18 @@ for i = 1:nImgs_loop
         end % end ch == 0 biofilm block
     end % end channel loop
 end % end image loop
+
+% *** DRIFT CORRECTION: save drift log for quality control ***
+save(fullfile(logsPath, 'drift_correction_log.mat'), 'drift_log');
+fprintf('\nDrift factors saved to logs folder.\n');
+
+% Plot drift factors so you can spot problematic frames
+figure;
+plot(1:nImgs_loop, drift_log, 'o-', 'LineWidth', 1.5);
+xlabel('Image #'); ylabel('Drift correction factor');
+title('Illumination drift correction factors');
+yline(1, '--k', 'No drift'); grid on;
+
+saveas(gcf, fullfile(plotPath, 'Illumination_drift_correction_factors.png'));
 
 disp('All images registered, biofilm thresholded, and matrices saved.');
