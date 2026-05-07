@@ -443,7 +443,7 @@ updateTopOverlay(axTop, axTopX);
 %% -------------------------------------------------
 % Save figure
 %% -------------------------------------------------
-exportgraphics(gcf, fullfile(plotPath, 'combined_experiment_plot_3panels.tif'), ...
+exportgraphics(gcf, fullfile(plotPath, 'combined_experiment_plot_3panels.pdf'), ...
     'Resolution', 300);
 
 fprintf('Saved plot in:\n%s\n', plotPath);
