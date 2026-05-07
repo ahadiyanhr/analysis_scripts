@@ -201,6 +201,12 @@ for k = 2:nFrames
         dI(abs(dI) < thresholdDiff) = 0;
     end
 
+    % 1 where pore, 0 where grain
+    poreBinaryMask = (GM_Final(1:minRows, 1:minCols) == 0);
+    
+    % Mask the difference image
+    dI_masked = dI .* single(poreBinaryMask);
+
     % Growth = positive changes; Erosion = magnitude of negative changes
     growthImg  = max( dI, 0);
     erosionImg = max(-dI, 0);
