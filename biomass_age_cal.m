@@ -5,7 +5,8 @@
 %   (0, 1]    = biomass present (1 = full biomass)
 %
 % Output ageFrame convention:
-%   NaN       = void pixel  OR  pixel that just sloughed this frame
+%   NaN       = grain/void pixel (permanent, from voidMask)
+%   -1        = pixel that just sloughed this frame        % FIX: was NaN
 %   0         = valid pixel with no biomass
 %   >0        = biomass age in hours
 
@@ -78,6 +79,31 @@ else
     error('Unknown datetime format in timestamp file.');
 end
 
+%% -------- Load flowrate and pressure to find shared t0 --------
+% Mirrors exactly what the three-panel plot does:
+%   t0 = min([t_q; t_p; t_img])
+
+cd(projectPath);
+cd('processed_data\pq_cleaned_data\');
+pdCleanedPath = pwd;
+
+TTq = readtable(fullfile(pdCleanedPath, 'cleaned_flowrate.csv'), 'TextType', 'string');
+TTq.datetime = datetime(TTq.datetime, 'InputFormat', 'MM/dd/yyyy hh:mm:ss a');
+t_q = TTq.datetime(:);
+
+TTp = readtable(fullfile(pdCleanedPath, 'cleaned_pressures.csv'), 'TextType', 'string');
+TTp.datetime = datetime(TTp.datetime, 'InputFormat', 'MM/dd/yyyy hh:mm:ss a');
+t_p = TTp.datetime(:);
+
+t0 = min([t_q; t_p; datetimeList]);   % identical to three-panel plot
+
+fprintf('Shared t0: %s\n', datestr(t0));
+
+% Return to logs path for the rest of the script
+cd(projectPath);
+cd('logs\');
+logsPath = pwd;
+
 %% -------- Match timestamps to available images --------
 
 nTimestamps = numel(datetimeList);
@@ -95,37 +121,34 @@ bioFiles = bioFiles(1:nImages);
 
 fprintf('Using %d images with matching timestamps.\n', nImages);
 
-% Experiment time in hours
-time_hr = hours(datetimeList - datetimeList(1));
+% Use shared t0 — now aligned with the three-panel plot
+time_hr = hours(datetimeList - t0);   % CHANGED: was datetimeList(1)
 
 %% -------- Load first image to get dimensions & void mask --------
 
 firstData = load(fullfile(threshPath, bioFiles(1).name));
 firstField = fieldnames(firstData);
-firstImg = firstData.(firstField{1});   % grab whatever variable is inside
+firstImg = firstData.(firstField{1});
 
 [rows, cols] = size(firstImg);
 
 %% -------- Load grain mask --------
-% Grain mask convention (n×m logical or double):
-%   true / 1  = grain (solid, void — excluded from analysis)
-%   false / 0 = open pore space (valid region for biomass)
 alignmentFile = fullfile(logsPath, 'manual_alignment.mat');
 load(alignmentFile, 'GM_Final');
 disp('Loaded saved grain mask from logs folder.');
 
-voidMask  = GM_Final == 1;   % force logical
+voidMask = GM_Final == 1;   % force logical
 
 fprintf('Image size: %d x %d  |  Grain (void) pixels: %d  |  Pore pixels: %d\n', ...
     rows, cols, sum(voidMask(:)), sum(~voidMask(:)));
 
 %% -------- Save metadata --------
 
-m.time_hr        = time_hr;
-m.datetimeList   = datetimeList;
-m.imageNumber    = imageNumber;
+m.time_hr         = time_hr;
+m.datetimeList    = datetimeList;
+m.imageNumber     = imageNumber;
 m.timestampOffset = timestampOffset;
-m.voidMask       = voidMask;
+m.voidMask        = voidMask;
 
 %% -------- Build biomass age stack --------
 
@@ -144,21 +167,23 @@ for i = 1:nImages
     field = fieldnames(data);
     img   = double(data.(field{1}));
 
-    %% Occupancy: biomass present = not void AND above threshold
-    occupied = ~isnan(img);
+    %% FIX: Occupancy now requires actual biomass signal (img > 0)
+    %  Previously ~isnan(img) wrongly treated zero-biomass pore pixels as occupied.
+    %  Grain pixels are NaN in img, so img > 0 already excludes them too.
+    occupied = img > 0;
 
     currentTime = single(time_hr(i));
 
     %% Initialise frame:
-    %  - void pixels → NaN  (region of no interest, never changes)
-    %  - valid pixels → 0   (no biomass; will be overwritten for biomass pixels)
+    %  - void pixels → NaN  (permanent grain mask, never changes)
+    %  - valid pixels → 0   (no biomass; overwritten below for biomass pixels)
     ageFrame = zeros(rows, cols, 'single');
     ageFrame(voidMask) = NaN;
 
-    %% Classify pixel transitions (void pixels are excluded via 'occupied')
-    newlyOccupied = occupied & ~prevOccupied;   % just appeared
-    stillOccupied = occupied &  prevOccupied;   % continuous biomass
-    sloughed      = ~occupied & prevOccupied & ~voidMask; % had biomass, now gone
+    %% Classify pixel transitions
+    newlyOccupied = occupied & ~prevOccupied;
+    stillOccupied = occupied &  prevOccupied;
+    sloughed      = ~occupied & prevOccupied & ~voidMask;
 
     %% Update growth start time for newly colonised pixels
     growthStartTime(newlyOccupied) = currentTime;
@@ -166,13 +191,20 @@ for i = 1:nImages
     %% Compute age for all currently occupied pixels
     ageFrame(occupied) = currentTime - growthStartTime(occupied);
 
-    %% Mark sloughed pixels as NaN only in this frame, then reset their timer
-    ageFrame(sloughed)          = NaN;
-    growthStartTime(sloughed)   = NaN;
+    %% FIX: Mark sloughed pixels as -1 instead of NaN
+    %  This keeps them distinguishable from permanent grain/void pixels (NaN).
+    ageFrame(sloughed)        = -1;
+    growthStartTime(sloughed) = NaN;   % reset timer for future recolonisation
 
-    %% Save frame
-    fileName = sprintf('biomass_age_%03d.mat', i);
-    save(fullfile(ageDistPath, fileName), 'ageFrame', 'currentTime');
+    %% FIX: Save sloughed mask explicitly alongside ageFrame
+    %  Downstream code can now cleanly separate all four pixel states:
+    %    NaN          → grain/void (use voidMask)
+    %    -1           → just sloughed this frame (use sloughedMask)
+    %    0            → pore, no biomass
+    %    > 0          → active biomass, value = age in hours
+    sloughedMask = sloughed;   % logical m×n, true where sloughing occurred
+    save(fullfile(ageDistPath, sprintf('biomass_age_%03d.mat', i)), ...
+        'ageFrame', 'currentTime', 'sloughedMask');
 
     %% Update occupancy for next iteration
     prevOccupied = occupied;
