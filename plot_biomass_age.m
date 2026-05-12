@@ -1,373 +1,247 @@
 %% Plot completed biomass-age distributions from sloughed pixels only
-% Uses biomass_age_001.mat, biomass_age_002.mat, ...
 %
-% ageFrame values:
-%   0    = no biomass
-%   NaN  = biomass was present before, but disappeared at this time step
-%   >0   = active biomass age, still occupied
-%
-% This script removes all still-active >0 biomass ages from the analysis.
-% It only uses NaN pixels, then extracts their age from the previous frame.
+% ageFrame values (from the fixed age-builder):
+%   NaN  = grain/void pixel (permanent)
+%   -1   = pixel that just sloughed this frame        ← used here to detect sloughing
+%   0    = pore, no biomass
+%   >0   = active biomass age in hours
 
 clear; clc; close all;
 
-%% -------- User settings --------
+%% ======== USER SETTINGS ========
 
-startFile = 2;        % Start from 2 because frame 1 has no previous ageFrame
-spaceData = 10;       % Space between data frames
+% Frames to include in the ridgeline plot (1-based, matching file order).
+% All frames are still processed for age collection — this only controls plotting.
+% Example: plotFrames = [10, 20, 30, 40, 50, 60];
+% Set to [] to auto-plot every frame that has sloughing data.
+plotFrames = [];
+
+% Maximum number of ages to keep per frame (inf = keep all)
 maxPointsPerFrame = inf;
 
-%% -------- Paths --------
-
+%% ======== PATHS ========
 mainPath = pwd;
 cd(mainPath); cd('../');
 projectPath = pwd;
 
 plotFolder = fullfile(projectPath, 'processed_data', 'plots');
-
-ageFolder = fullfile(projectPath, ...
-    'processed_data', 'biomass_age');
+ageFolder  = fullfile(projectPath, 'processed_data', 'biomass_age');
 
 ageFiles = dir(fullfile(ageFolder, 'biomass_age_*.mat'));
-
 if isempty(ageFiles)
     error('No biomass_age_*.mat files found in: %s', ageFolder);
 end
-
 [~, idx] = sort({ageFiles.name});
-ageFiles = ageFiles(idx);
-
-nFiles = numel(ageFiles);
-
+ageFiles  = ageFiles(idx);
+nFiles    = numel(ageFiles);
 fprintf('Found %d biomass-age files.\n', nFiles);
 
-%% -------- Collect completed biomass ages --------
-% allAges{i} = ages of biomass pixels that sloughed at timestamp i
+%% ======== COLLECT OR LOAD COMPLETED + ACTIVE AGES ========
 
-allTimes = nan(nFiles,1);
-allAges = cell(nFiles,1);
-maxAge = 0;
+cacheFile    = fullfile(ageFolder, 'completed_ages_all_frames.mat');
+cacheVars    = {'allAges', 'allAgesActive', 'allTimes'};
+cacheValid   = false;
 
-% Load first frame as previous frame
-Sprev = load(fullfile(ageFolder, ageFiles(1).name), ...
-    'ageFrame', 'currentTime');
+if isfile(cacheFile)
+    cacheInfo  = whos('-file', cacheFile);             % list variables inside the file
+    savedVars  = {cacheInfo.name};
+    cacheValid = all(ismember(cacheVars, savedVars));  % true only if ALL variables present
 
-prevAgeFrame = Sprev.ageFrame;
-
-if isfield(Sprev, 'currentTime')
-    allTimes(1) = double(Sprev.currentTime);
-else
-    allTimes(1) = 1;
-end
-
-for i = startFile:spaceData:nFiles
-
-    S = load(fullfile(ageFolder, ageFiles(i).name), ...
-        'ageFrame', 'currentTime');
-
-    ageFrame = S.ageFrame;
-
-    if isfield(S, 'currentTime')
-        allTimes(i) = double(S.currentTime);
+    if cacheValid
+        fprintf('Cache found and complete. Loading from:\n  %s\n', cacheFile);
+        load(cacheFile, 'allAges', 'allAgesActive', 'allTimes');
+        nFiles = numel(allAges);
+        fprintf('Loaded %d frames from cache.\n', nFiles);
     else
-        allTimes(i) = i;
+        missing = cacheVars(~ismember(cacheVars, savedVars));
+        fprintf('Cache found but missing: %s\n  Reprocessing all frames...\n', ...
+            strjoin(missing, ', '));
     end
-
-    % Pixels that sloughed at current timestamp
-    sloughedMask = isnan(ageFrame);
-
-    % Their completed age is the age from the previous frame
-    completedAges = prevAgeFrame(sloughedMask);
-
-    % Keep only valid previous ages
-    completedAges = completedAges(completedAges > 0 & ~isnan(completedAges));
-
-    % Optional downsampling for memory/plot speed
-    if numel(completedAges) > maxPointsPerFrame
-        sampleIdx = round(linspace(1, numel(completedAges), maxPointsPerFrame));
-        completedAges = completedAges(sampleIdx);
-    end
-
-    allAges{i} = completedAges;
-
-    if ~isempty(completedAges)
-        maxAge = max(maxAge, max(completedAges));
-    end
-
-    % Update previous frame
-    prevAgeFrame = ageFrame;
-
-    fprintf('Processed file %d/%d: %d completed ages\n', ...
-        i, nFiles, numel(completedAges));
 end
 
-% Remove empty timestamps for plotting
-validIdx = ~cellfun(@isempty, allAges) & ~isnan(allTimes);
+if ~cacheValid
 
-allAgesValid = allAges(validIdx);
-allTimesValid = allTimes(validIdx);
+    allTimes      = nan(nFiles, 1);
+    allAges       = cell(nFiles, 1);
+    allAgesActive = cell(nFiles, 1);
 
-nValid = numel(allAgesValid);
+    Sprev        = load(fullfile(ageFolder, ageFiles(1).name), ...
+                        'ageFrame', 'currentTime');
+    prevAgeFrame = Sprev.ageFrame;
+    allTimes(1)  = double(Sprev.currentTime);
 
-if nValid == 0
-    error('No completed biomass ages found. Check whether NaN exists in your ageFrame files.');
-end
+    activeAges1      = prevAgeFrame(prevAgeFrame > 0);
+    allAgesActive{1} = activeAges1(~isnan(activeAges1));
 
-fprintf('Using %d timestamps with completed sloughing ages.\n', nValid);
+    for i = 2:nFiles
 
-%% -------- Define common x grid --------
+        S        = load(fullfile(ageFolder, ageFiles(i).name), ...
+                        'ageFrame', 'currentTime', 'sloughedMask');
+        ageFrame = S.ageFrame;
+        allTimes(i) = double(S.currentTime);
 
-xMax = max(allTimesValid);   % experiment time axis, not biomass age axis
-x = linspace(0, xMax, 200);
+        sloughedMask  = S.sloughedMask;
+        completedAges = prevAgeFrame(sloughedMask);
+        completedAges = completedAges(completedAges > 0 & ~isnan(completedAges));
 
-% %% -------- Plot 1: Ridgeline plot --------
-% 
-% fig1 = figure('Color','w');
-% hold on;
-% 
-% offset = 0;
-% offsetStep = 1.2;
-% 
-% cmap = jet(nValid);
-% 
-% for k = 1:nValid
-% 
-%     ages = allAgesValid{k};
-% 
-%     if numel(ages) < 2
-%         continue;
-%     end
-% 
-%     try
-%         f = ksdensity(ages, x);
-%     catch
-%         counts = histcounts(ages, [x max(x)+eps], 'Normalization','pdf');
-%         f = counts;
-%     end
-% 
-%     if max(f) > 0
-%         f = f / max(f);
-%     end
-% 
-%     y = f + offset;
-% 
-%     plot(x, y, 'Color', cmap(k,:), 'LineWidth', 1.5);
-% 
-%     fill([x fliplr(x)], ...
-%          [offset*ones(size(x)) fliplr(y)], ...
-%          cmap(k,:), ...
-%          'FaceAlpha', 0.3, ...
-%          'EdgeColor', 'none');
-% 
-%     offset = offset + offsetStep;
-% end
-% 
-% xlabel('Completed biomass age before sloughing (hr)');
-% ylabel('Density distribution (stacked)');
-% title('Ridgeline plot of completed biomass ages');
-% 
-% colormap(jet);
-% cb = colorbar;
-% cb.Label.String = 'Image #';
-% caxis([min(allTimesValid) max(allTimesValid)]);
-% 
-% grid on;
-% box on;
-% 
-% saveas(fig1, fullfile(plotFolder, 'completed_biomass_age_ridgeline.png'));
-
-%% -------- Plot 1: Ridgeline plot (corrected) --------
-
-fig1 = figure('Color', 'w');
-hold on;
-
-offset     = 0;
-offsetStep = 1.2;
-
-% --- Distinguishable color palette (up to ~20 traces) ---
-baseColors = [
-    0.00  0.45  0.70;   % blue
-    0.85  0.33  0.10;   % orange-red
-    0.47  0.67  0.19;   % green
-    0.50  0.00  0.50;   % purple
-    0.93  0.69  0.13;   % gold
-    0.30  0.75  0.93;   % sky blue
-    0.64  0.08  0.18;   % dark red
-    0.00  0.60  0.50;   % teal
-    1.00  0.60  0.00;   % amber
-    0.49  0.18  0.56;   % violet
-    0.19  0.53  0.74;   % steel blue
-    0.74  0.74  0.13;   % olive
-    1.00  0.40  0.40;   % salmon
-    0.13  0.70  0.67;   % cyan-green
-    0.80  0.47  0.74;   % mauve
-    0.55  0.34  0.29;   % brown
-    0.57  0.82  0.31;   % lime
-    0.09  0.75  0.81;   % aqua
-    0.99  0.75  0.44;   % peach
-    0.39  0.58  0.93;   % periwinkle
-];
-
-nColors = size(baseColors, 1);
-
-for k = 1:nValid
-
-    ages = allAgesValid{k};
-    tMax = allTimesValid(k);   % this image's experiment time (hr)
-
-    if numel(ages) < 2
-        continue;
-    end
-
-    % --- 1. Clip x to [0, tMax] so the area never extends beyond its own time ---
-    xk = x(x <= allTimesValid(k));
-    if isempty(xk)
-        xk = linspace(0, allTimesValid(k), 50);
-    end
-
-    % --- KDE on clipped grid ---
-    try
-        f = ksdensity(ages, xk);
-    catch
-        edges  = [xk, max(xk) + eps];
-        counts = histcounts(ages, edges, 'Normalization', 'pdf');
-        f      = counts;
-        if numel(f) < numel(xk)
-            f(end+1:numel(xk)) = 0;
+        if numel(completedAges) > maxPointsPerFrame
+            sIdx = round(linspace(1, numel(completedAges), maxPointsPerFrame));
+            completedAges = completedAges(sIdx);
         end
+        allAges{i} = completedAges;
+
+        activeAges = ageFrame(ageFrame > 0);
+        activeAges = activeAges(~isnan(activeAges));
+
+        if numel(activeAges) > maxPointsPerFrame
+            sIdx = round(linspace(1, numel(activeAges), maxPointsPerFrame));
+            activeAges = activeAges(sIdx);
+        end
+        allAgesActive{i} = activeAges;
+
+        prevAgeFrame = ageFrame;
+
+        fprintf('File %d/%d | t=%.1fhr | sloughed=%d | active=%d\n', ...
+            i, nFiles, allTimes(i), numel(completedAges), numel(activeAges));
     end
 
-    % Normalize peak to 1
-    if max(f) > 0
-        f = f / max(f);
-    end
+    save(cacheFile, 'allAges', 'allAgesActive', 'allTimes');
+    fprintf('Cache saved to:\n  %s\n', cacheFile);
 
-    y     = f + offset;
-    color = baseColors(mod(k-1, nColors) + 1, :);
-
-    % Ridge line
-    plot(xk, y, 'Color', color, 'LineWidth', 1.8);
-
-    % Filled area from the local baseline (offset) up to the curve
-    fill([xk, fliplr(xk)], ...
-         [offset * ones(size(xk)), fliplr(y)], ...
-         color, 'FaceAlpha', 0.35, 'EdgeColor', 'none');
-
-    % --- 3. Time label at the right end of this area ---
-    text(tMax + maxAge * 0.015, ...        % just past the right edge
-         offset + 0.50, ...                % vertically centred in the ridge
-         sprintf('%.0f hr', tMax), ...
-         'Color',           color, ...
-         'FontSize',        9, ...
-         'FontWeight',      'bold', ...
-         'VerticalAlignment','middle', ...
-         'HorizontalAlignment','left');
-
-    offset = offset + offsetStep;
 end
 
-xlabel('Completed biomass age before sloughing (hr)');
-ylabel('Density (stacked, normalized)');
-title('Ridgeline plot of completed biomass ages');
+%% ======== SELECT PLOT FRAMES ========
 
-% Extend x-axis a little to make room for labels
-xlim([0, maxAge * 1.18]);
+if isempty(plotFrames)
+    plotIdx = find(~cellfun(@isempty, allAges));
+else
+    plotIdx = plotFrames;
+end
 
-% No colorbar — colors are self-labelled on the right
-grid on;
-box on;
+hasData  = ~cellfun(@isempty, allAges(plotIdx)) & ~isnan(allTimes(plotIdx));
+plotIdx  = plotIdx(hasData);
 
-saveas(fig1, fullfile(plotFolder, 'completed_biomass_age_ridgeline.png'));
+allAgesValid       = allAges(plotIdx);
+allAgesActiveValid = allAgesActive(plotIdx);
+allTimesValid      = allTimes(plotIdx);
+nT                 = numel(allAgesValid);
 
-% %% -------- Plot 2: Overlay normalized density plots --------
-% 
-% fig2 = figure('Color','w');
-% hold on;
-% 
-% tNorm = (allTimesValid - min(allTimesValid)) ./ ...
-%         (max(allTimesValid) - min(allTimesValid));
-% 
-% if all(isnan(tNorm)) || allTimesValid(1) == allTimesValid(end)
-%     tNorm = zeros(size(allTimesValid));
-% end
-% 
-% cmap = jet(256);
-% 
-% for k = 1:nValid
-% 
-%     ages = allAgesValid{k};
-% 
-%     if numel(ages) < 2
-%         continue;
-%     end
-% 
-%     try
-%         f = ksdensity(ages, x);
-%     catch
-%         counts = histcounts(ages, [x max(x)+eps], 'Normalization','pdf');
-%         f = counts;
-%     end
-% 
-%     if max(f) > 0
-%         f = f / max(f);
-%     end
-% 
-%     colorIdx = max(1, min(256, round(tNorm(k)*255)+1));
-%     color = cmap(colorIdx, :);
-% 
-%     plot(x, f, 'Color', color, 'LineWidth', 1.2);
-% end
-% 
-% xlabel('Completed biomass age before sloughing (hr)');
-% ylabel('Normalized density');
-% title('Completed biomass-age distribution over time');
-% 
-% colormap(jet);
-% cb = colorbar;
-% cb.Label.String = 'Experiment time (hr)';
-% caxis([min(allTimesValid) max(allTimesValid)]);
-% 
-% grid on;
-% box on;
-% 
-% saveas(fig2, fullfile(plotFolder, 'completed_biomass_age_norm_density.png'));
-% 
-% %% -------- Plot 3: Overlay raw density plots --------
-% 
-% fig3 = figure('Color','w');
-% hold on;
-% 
-% for k = 1:nValid
-% 
-%     ages = allAgesValid{k};
-% 
-%     if numel(ages) < 2
-%         continue;
-%     end
-% 
-%     try
-%         f = ksdensity(ages, x);
-%     catch
-%         counts = histcounts(ages, [x max(x)+eps], 'Normalization','pdf');
-%         f = counts;
-%     end
-% 
-%     colorIdx = max(1, min(256, round(tNorm(k)*255)+1));
-%     color = cmap(colorIdx, :);
-% 
-%     plot(x, f, 'Color', color, 'LineWidth', 1.2);
-% end
-% 
-% xlabel('Completed biomass age before sloughing (hr)');
-% ylabel('Probability density');
-% title('Completed biomass-age raw density over time');
-% 
-% colormap(jet);
-% cb = colorbar;
-% cb.Label.String = 'Experiment time (hr)';
-% caxis([min(allTimesValid) max(allTimesValid)]);
-% 
-% grid on;
-% box on;
-% 
-% saveas(fig3, fullfile(plotFolder, 'completed_biomass_age_density.png'));
+fprintf('\nPlotting %d selected frames.\n', nT);
+
+%% ======== BUILD HEATMATRICES ========
+
+nBins    = 50;
+maxAgeSloughed = max(cellfun(@(x) max(x(:)), allAgesValid(~cellfun(@isempty,allAgesValid))));
+maxAgeActive   = max(cellfun(@(x) max(x(:)), allAgesActiveValid(~cellfun(@isempty,allAgesActiveValid))));
+
+edgesS = linspace(0, maxAgeSloughed, nBins+1);
+edgesA = linspace(0, maxAgeActive,   nBins+1);
+
+heatSloughed = zeros(nT, nBins);
+heatActive   = zeros(nT, nBins);
+mediansS     = zeros(nT, 1);
+mediansA     = zeros(nT, 1);
+
+for k = 1:nT
+
+    % Sloughed
+    ages = double(allAgesValid{k});
+    if numel(ages) >= 2
+        c = histcounts(ages, edgesS);
+        if max(c) > 0; heatSloughed(k,:) = c / max(c); end
+        mediansS(k) = median(ages);
+    end
+
+    % Active
+    ages = double(allAgesActiveValid{k});
+    if numel(ages) >= 2
+        c = histcounts(ages, edgesA);
+        if max(c) > 0; heatActive(k,:) = c / max(c); end
+        mediansA(k) = median(ages);
+    end
+
+end
+
+%% ======== Y-AXIS TICK LABELS (from plotIdx — already filtered) ========
+
+tickStep   = 5;
+tickPos    = 1:tickStep:nT;              % row indices into the nT valid frames
+tickFrames = plotIdx(tickPos);           % FIX: use plotIdx not plotFrames
+                                         % plotIdx is already filtered to nT entries
+tickLabels = arrayfun(@(n) sprintf('#%03d', n), tickFrames, 'UniformOutput', false);
+
+%% ======== PLOT: TWO HEATMAPS SIDE BY SIDE ========
+
+accentColor = [0.30 0.65 1.00];   % ADD THIS LINE
+
+fig = figure('Color','w','Position',[100 80 1300 700]);
+tl  = tiledlayout(1, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+binCentersS = edgesS(1:end-1) + diff(edgesS)/2;
+binCentersA = edgesA(1:end-1) + diff(edgesA)/2;
+
+%% --- LEFT: Sloughed completed ages ---
+ax1 = nexttile(tl, 1);
+
+imagesc(ax1, binCentersS, 1:nT, heatSloughed);
+axis(ax1, 'xy');
+colormap(ax1, flipud(hot));
+cb1 = colorbar(ax1);
+cb1.Label.String = 'Normalized density';
+clim(ax1, [0 1]);
+
+hold(ax1, 'on');
+
+% Diagonal boundary (max possible age = experiment time)
+plot(ax1, allTimesValid, 1:nT, '--', ...
+    'Color', accentColor, 'LineWidth', 1.5, ...
+    'DisplayName', 'Max possible age');
+
+% Median
+plot(ax1, mediansS, 1:nT, '-o', ...
+    'Color', accentColor, 'MarkerFaceColor', accentColor, ...
+    'MarkerSize', 4, 'LineWidth', 1.5, ...
+    'DisplayName', 'Median');
+
+xlabel(ax1, 'Completed age at sloughing (hr)', 'FontSize', 11, 'FontWeight', 'bold');
+ylabel(ax1, 'Image number',                     'FontSize', 11, 'FontWeight', 'bold');
+
+yticks(ax1, tickPos);
+yticklabels(ax1, tickLabels);
+legend(ax1, 'Location', 'northwest', 'Box', 'off', 'FontSize', 9);
+grid(ax1, 'off'); box(ax1, 'on');
+
+%% --- RIGHT: Active biomass ages ---
+ax2 = nexttile(tl, 2);
+
+imagesc(ax2, binCentersA, 1:nT, heatActive);
+axis(ax2, 'xy');
+colormap(ax2, flipud(hot));
+cb2 = colorbar(ax2);
+cb2.Label.String = 'Normalized density';
+clim(ax2, [0 1]);
+
+hold(ax2, 'on');
+
+% Diagonal boundary
+plot(ax2, allTimesValid, 1:nT, '--', ...
+    'Color', accentColor, 'LineWidth', 1.5, ...
+    'DisplayName', 'Max possible age');
+
+% Median
+plot(ax2, mediansA, 1:nT, '-o', ...
+    'Color', accentColor, 'MarkerFaceColor', accentColor, ...
+    'MarkerSize', 4, 'LineWidth', 1.5, ...
+    'DisplayName', 'Median');
+
+xlabel(ax2, 'Active biomass age (hr)', 'FontSize', 11, 'FontWeight', 'bold');
+ylabel(ax2, 'Image number',            'FontSize', 11, 'FontWeight', 'bold');
+
+yticks(ax2, tickPos);
+yticklabels(ax2, tickLabels);
+legend(ax2, 'Location', 'northwest', 'Box', 'off', 'FontSize', 9);
+grid(ax2, 'off'); box(ax2, 'on');
+
+exportgraphics(fig, fullfile(plotFolder, 'biomass_age_heatmaps_dual.pdf'), ...
+    'Resolution', 300);
+fprintf('Saved dual heatmap to:\n  %s\n', plotFolder);
