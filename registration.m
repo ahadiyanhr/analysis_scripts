@@ -157,9 +157,8 @@ REF_IMG_RGB = [];
 REF_GRAIN_INTENSITY = [];
 
 % Pre-allocate array to log drift factors for inspection
-drift_log = nan(nImgs_loop, 1);
-
 nImgs_loop = min(nImgs, nIMG);
+drift_log = nan(nImgs_loop, 1);
 
 for i = 1:nImgs_loop
     % Extract base filename for this image (e.g., 't00')
@@ -264,18 +263,23 @@ for i = 1:nImgs_loop
             % --- Step 6.5: Remove grain overlap ---
             newimg_bin = newimg_bin .* imcomplement(GM_Final);
 
-            % --- Step 6.6: Normalize intensity and build output matrices ---
-            newimgGray_d0  = double(newimgGray);
+            % --- Step 6.6: Normalize intensity and build output matrix ---
+            newimgGray_d0   = double(newimgGray);
             newimgGray_norm = newimgGray_d0 / 65535;
-            clear newimgGray
-
-            % All pore pixels (grains set to NaN)
-            newimgGray_norm_poreAll = newimgGray_norm;
-            newimgGray_norm_poreAll(GM_Final == 1) = NaN;
-
-            % Only confirmed biofilm pixels (non-biofilm set to NaN)
-            newimgGray_norm_biofilm = newimgGray_norm;
-            newimgGray_norm_biofilm(newimg_bin == 0) = NaN;
+            clear newimgGray newimgGray_d0
+            
+            % Build output matrix with the correct structure:
+            %   grains         → NaN
+            %   empty pores    → 0
+            %   biomass pixels → normalized intensity [0, 1] (proxy for density)
+            
+            Final_Matrix = zeros(size(newimgGray_norm));             % Step 1: everything starts as 0 (empty pore)
+            
+            grain_mask   = logical(GM_Final);
+            biofilm_mask = logical(newimg_bin) & ~grain_mask;        % biofilm that does NOT overlap grains
+            
+            Final_Matrix(grain_mask)    = NaN;                       % Step 2: grains → NaN
+            Final_Matrix(biofilm_mask)  = newimgGray_norm(biofilm_mask); % Step 3: biomass → density [0,1]
 
             % % Display before and after thresholding
             % figure;
@@ -284,8 +288,8 @@ for i = 1:nImgs_loop
 
             % --- Step 6.7: Gap fill, reshape, and save ---
             cd(funcPath);
-            Final_Biofilm_Matrix_OF = fill_gaps(newimgGray_norm_biofilm);
-
+            Final_Biofilm_Matrix_OF = fill_gaps(Final_Matrix);
+            
             frameID = sprintf('%02d', i-1);
             varName = ['thresholded_' frameID];
             eval([varName ' = Final_Biofilm_Matrix_OF;']);
@@ -293,10 +297,10 @@ for i = 1:nImgs_loop
             fprintf('Biofilm matrix saved: %s\n', varName);
 
             % Free everything before next iteration
-            clear Final_Biofilm_Matrix_OF newimgGray_norm ...
-                  newimgGray_norm_poreAll newimgGray_norm_biofilm ...
+            clear Final_Matrix newimgGray_norm ...
                   newimg_bin nonZeroMask nearestLinearIdx ...
-                  nearestIdxRow nearestIdxCol zeroMask newimg
+                  nearestIdxRow nearestIdxCol zeroMask newimg ...
+                  grain_mask biofilm_mask
             eval(['clear ' varName]);  % clear the dynamically named variable too
         else
             clear aligned_img img  % free FRET channel too
@@ -315,6 +319,6 @@ xlabel('Image #'); ylabel('Drift correction factor');
 title('Illumination drift correction factors');
 yline(1, '--k', 'No drift'); grid on;
 
-saveas(gcf, fullfile(plotPath, 'Illumination_drift_correction_factors.pdf'));
+saveas(gcf, fullfile(plotPath, 'Illumination_drift_correction_factors.png'));
 
 disp('All images registered, biofilm thresholded, and matrices saved.');
