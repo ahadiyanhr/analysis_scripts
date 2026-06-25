@@ -1,92 +1,138 @@
 %% -------- Setup --------
-
-% Scripts path
 mainPath = pwd;
-
-% Project path
 cd(mainPath);
 cd('../');
 projectPath = pwd;
 
-% Thresholded images root path
 cd(projectPath);
 cd('processed_images\thresholded_images\');
 threshRootPath = pwd;
 mainResultsFolder = dir(fullfile(threshRootPath, '*_main_results'));
 mainThreshPath = fullfile(threshRootPath, mainResultsFolder(1).name);
 
-% DO mapped data folder path
 cd(projectPath);
 cd('processed_data\do_mapped\');
 doMappedPath = pwd;
 
-% Biomass occupation data folder path
 cd(projectPath);
 cd('processed_data\biomass_occupation_bulkDO\');
 biomassDataPath = pwd;
 
-% Add this in the Setup section
 cd(projectPath);
 cd('logs\');
 logsPath = pwd;
 
+%% -------- CONFIG --------
+nPatches = 10;   % number of column strips for spatial std estimation
+
 %% -------- LOAD MASK FILE --------
-% Load saved alignment
 alignmentFile = fullfile(logsPath, 'manual_alignment.mat');
 load(alignmentFile, 'GM_Final');
 disp('Loaded final Grain Mask from logs folder.');
-total_pore_pixels = sum(GM_Final(:) == 0);
-fprintf('Total pore pixels: %d\n', total_pore_pixels);
 
-%% ---- Starting process ----
+%% -------- HELPER: reactor crop indices --------
+function [col_start, col_end] = reactor_cols(img_width, img_height)
+    % Reactor length in pixels = 1.5 * image height (since H=W_physical, L=1.5*W_physical)
+    reactor_L_px = round(1.5 * img_height);
+    col_center   = round(img_width / 2);
+    col_start    = max(1,         col_center - round(reactor_L_px / 2));
+    col_end      = min(img_width, col_center + round(reactor_L_px / 2));
+end
 
-% Get list of thresholded files
+%% -------- HELPER: patch-based biomass occupation --------
+function [bm_mean, bm_std] = patch_biomass(mat_reactor, gm_reactor, nPatches)
+    cols = round(linspace(1, size(mat_reactor, 2)+1, nPatches+1));
+    patch_occ = zeros(1, nPatches);
+    for i = 1:nPatches
+        patch    = mat_reactor(:, cols(i):cols(i+1)-1);
+        gm_patch = gm_reactor(:,  cols(i):cols(i+1)-1);
+        pore_px  = sum(gm_patch(:) == 0);
+        if pore_px == 0
+            patch_occ(i) = NaN;
+        else
+            patch_occ(i) = sum(patch(:) > 0 & ~isnan(patch(:))) / pore_px * 100;
+        end
+    end
+    patch_occ = patch_occ(~isnan(patch_occ));
+    bm_mean   = mean(patch_occ);
+    bm_std    = std(patch_occ);
+end
+
+%% -------- File sorting --------
 matFiles = dir(fullfile(mainThreshPath, 'thresholded_*.mat'));
-nFiles = length(matFiles);
+nFiles   = length(matFiles);
 mapped_files = dir(fullfile(doMappedPath,'*.mat'));
-
 if nFiles == 0
     warning('No .mat files in: %s', mainThreshPath);
     return;
 end
 
-% Sort matFiles numerically
 matFiles = matFiles(~[matFiles.isdir]);
 matNums  = arrayfun(@(f) sscanf(f.name, 'thresholded_%d.mat'), matFiles);
 [~, idx] = sort(matNums);
 matFiles = matFiles(idx);
 
-% Sort mapped_files numerically
 mapped_files = mapped_files(~[mapped_files.isdir]);
-% Adjust the format string below to match your actual mapped filename pattern
 mapNums  = arrayfun(@(f) sscanf(f.name, 'do_mapped_t%d.mat'), mapped_files);
 [~, idx] = sort(mapNums);
 mapped_files = mapped_files(idx);
 
-% Initialize struct to hold results
-data = struct();
-data.biomass_occupation = 0;
-mappedFile = load(fullfile(doMappedPath, mapped_files(1).name));
-data.bulk_do = mean(mappedFile.mapped(:));
+%% -------- t=0 initialization --------
+mappedFile_t0        = load(fullfile(doMappedPath, mapped_files(1).name));
+do_map_t0            = mappedFile_t0.mapped;
+[H0, W0]             = size(do_map_t0);
+[cs0, ce0]           = reactor_cols(W0, H0);
+do_reactor_t0        = do_map_t0(:, cs0:ce0);
 
-data.image_names = {};
+data = struct();
+data.biomass_occupation     = 0;
+data.biomass_occupation_std = 0;
+data.bulk_do                = mean(do_reactor_t0(:));
+data.bulk_do_std            = std(do_reactor_t0(:));
+data.image_names            = {};
+
 fprintf('\n--- Processing %d frames ---\n', nFiles);
-% Loop over files
+
+%% -------- Main loop --------
 for k = 1:nFiles
+    % Load thresholded biomass image
     matData = load(fullfile(mainThreshPath, matFiles(k).name));
     fields  = fieldnames(matData);
     mat     = matData.(fields{1});
+
+    % Load corresponding DO map
     mappedFile = load(fullfile(doMappedPath, mapped_files(k+1).name));
-    biomass_percent = (sum(~isnan(mat(:))) / total_pore_pixels) * 100;
-    data.biomass_occupation(end+1) = biomass_percent;
-    data.bulk_do(end+1) = mean(mappedFile.mapped(:));
+    do_map     = mappedFile.mapped;
+
+    % --- Crop both to reactor section ---
+    [H_px, W_px]       = size(mat);
+    [col_start, col_end] = reactor_cols(W_px, H_px);
+
+    mat_reactor = mat(:,      col_start:col_end);
+    gm_reactor  = GM_Final(:, col_start:col_end);
+
+    % DO map may have different image size — crop independently
+    [H_do, W_do]           = size(do_map);
+    [cs_do, ce_do]         = reactor_cols(W_do, H_do);
+    do_reactor             = do_map(:, cs_do:ce_do);
+
+    % --- Patch-based biomass occupation (reactor only) ---
+    [bm_mean, bm_std] = patch_biomass(mat_reactor, gm_reactor, nPatches);
+
+    data.biomass_occupation(end+1)     = bm_mean;
+    data.biomass_occupation_std(end+1) = bm_std;
+
+    % --- Bulk DO (reactor only) ---
+    data.bulk_do(end+1)     = mean(do_reactor(:));
+    data.bulk_do_std(end+1) = std(do_reactor(:));
+
     data.image_names{end+1} = matFiles(k).name;
 
-    fprintf('Processed %s biomass: %.2f%%  | %s Bulk DO: %.4f\n', matFiles(k).name, biomass_percent, mapped_files(k+1).name, mean(mappedFile.mapped(:)));
-
+    fprintf('Processed %s | biomass: %.2f%% ± %.2f%%  |  bulk DO: %.4f ± %.4f\n', ...
+        matFiles(k).name, bm_mean, bm_std, mean(do_reactor(:)), std(do_reactor(:)));
 end
-    
-    % Save results
-    save_path = fullfile(biomassDataPath, [mainResultsFolder(1).name, '.mat']);
-    save(save_path, 'data');
-    fprintf('Processed %s: %d images, saved to %s\n', mainResultsFolder(1).name, nFiles, save_path);
+
+%% -------- Save --------
+save_path = fullfile(biomassDataPath, [mainResultsFolder(1).name, '.mat']);
+save(save_path, 'data');
+fprintf('\nSaved to %s\n  Fields: biomass_occupation, biomass_occupation_std, bulk_do, bulk_do_std\n', save_path);
