@@ -263,5 +263,6 @@ MainFolderProject/
   ```
   light_adjustment.m
   ```
+> *Note:* The mask and images should be registered and aligned.
 
 ---
