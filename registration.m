@@ -160,13 +160,16 @@ REF_GRAIN_INTENSITY = [];
 nImgs_loop = min(nImgs, nIMG);
 drift_log = nan(nImgs_loop, 1);
 
+hasCh01 = ~isempty(dir(fullfile(tifRawImagesPath, '*ch01*.tif')));
+channelsToProcess = 0:(hasCh01); % 0:0 or 0:1
+
 for i = 1:nImgs_loop
     % Extract base filename for this image (e.g., 't00')
     [~, name, ~] = fileparts(imgNames{i});
     baseName = extractBefore(name, 'ch00');
 
     % Process each channel
-    for ch = 0:1
+    for ch = channelsToProcess
         % Construct filename for current channel
         chName = sprintf('ch%02d', ch);
         filename = fullfile(tifRawImagesPath, [baseName, chName, '.tif']);
