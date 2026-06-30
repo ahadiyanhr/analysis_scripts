@@ -95,6 +95,7 @@ else
     % Read first image
     img0 = imread(fullfile(tifRawImagesPath, imgNames{1}));
     if size(img0, 3) > 1,  img0 = rgb2gray(img0);  end
+    img0 = im2uint16(img0);   % <-- promote 8-bit to 16-bit before any 16-bit arithmetic
 
     % Resize grain mask image based on the BF and save it
     cd(funcPath);
@@ -191,6 +192,7 @@ for i = 1:nImgs_loop
                     img = img(:,:,2);
                 end
         end
+        img = im2uint16(img);   % <-- promote 8-bit to 16-bit, same scaling as img0
 
         % Reference and transform
         R_img = imref2d(size(img));
