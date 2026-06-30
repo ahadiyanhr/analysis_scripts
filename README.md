@@ -255,4 +255,13 @@ MainFolderProject/
    ```
   processed_data/plots/
   ```
+
+### **Intensity Correction for Microscopy Images (Grain-Mask Based)**
+
+- Correct brightfield microscopy images that were captured under a different light intensity than intended, by rescaling them to match a correctly-lit reference image. The correction uses the grain mask as the calibration reference.
+- Just need to open below code in Matlab and define inputs:
+  ```
+  light_adjustment.m
+  ```
+
 ---
