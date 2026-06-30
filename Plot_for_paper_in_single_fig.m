@@ -27,17 +27,27 @@ flag_cP = false;          % true  → plot flowrate on left axis (cP condition)
                          % false → plot ΔP      on left axis (cQ condition)
 
 % --- DO truncation ---
-t_DO_end_h = 36;         % DO line/fill drawn from t=0 up to this elapsed hour
+t_DO_end_h = inf;         % DO line/fill drawn from t=0 up to this elapsed hour
 
 % --- DO physical scale for right-axis normalisation ---
 DO_MAX_MGPL = 8;         % 100 % on the right axis = this many mg/L
 
 % --- Event lines ---
-eventTimes  = [8.5, 13.1, 22.0, 37.5];                              % <-- edit: elapsed hours
-eventLabels = {'a,e', 'b,f', 'c,g', 'd,h'}; % <-- edit: one label per time
+eventTimes  = []; %[8.5, 13.1, 22.0, 37.5];                              % <-- edit: elapsed hours
+eventLabels = {}; %{'a,e', 'b,f', 'c,g', 'd,h'}; % <-- edit: one label per time
 eventColor  = [0.0 0.0 0.0];   % dark charcoal
 eventLW     = 1;
 
+% --- Axis-side assignment ---
+% cP experiment: hydraulic (flowrate) on LEFT, biomass/DO on RIGHT
+% cQ experiment: hydraulic (ΔP)       on RIGHT, biomass/DO on LEFT
+if flag_cP
+    hydraulicAxis = 'left';
+    bioDOAxis     = 'right';
+else
+    hydraulicAxis = 'right';
+    bioDOAxis     = 'left';
+end
 
 %% =========================================================
 %  PATHS
@@ -90,15 +100,20 @@ t_img = datetime(imagingTime.Datetime, 'InputFormat', 'yyyy-MM-dd HH:mm:ss');
 t_img = t_img(:);
  
 S = load(fullfile(bioDOPath, bioMatFile));
+
 biomass_occ     = S.data.biomass_occupation(:);
 biomass_occ_std = S.data.biomass_occupation_std(:);
-bulk_DO         = S.data.bulk_do(:);
-bulk_DO_std     = S.data.bulk_do_std(:);
- 
+
+hasDO = isfield(S.data, 'bulk_do') && isfield(S.data, 'bulk_do_std');
+if hasDO
+    bulk_DO     = S.data.bulk_do(:);
+    bulk_DO_std = S.data.bulk_do_std(:);
+end
+
 if length(biomass_occ) ~= length(t_img)
     error('Length of biomass_occ does not match imaging timestamps.');
 end
-if length(bulk_DO) ~= length(t_img)
+if hasDO && length(bulk_DO) ~= length(t_img)
     error('Length of bulk_DO does not match imaging timestamps.');
 end
  
@@ -113,13 +128,15 @@ hours_img = hours(t_img - t0);
 %% =========================================================
 %  DO RESCALING  (mg/L → %)
 %% =========================================================
-DO_pct     = (bulk_DO     / DO_MAX_MGPL) * 100;
-DO_pct_std = (bulk_DO_std / DO_MAX_MGPL) * 100;
- 
-mask_DO      = hours_img <= t_DO_end_h;
-hours_img_DO = hours_img(mask_DO);
-DO_pct_plot  = DO_pct(mask_DO);
-DO_std_plot  = DO_pct_std(mask_DO);
+if hasDO
+    DO_pct     = (bulk_DO     / DO_MAX_MGPL) * 100;
+    DO_pct_std = (bulk_DO_std / DO_MAX_MGPL) * 100;
+
+    mask_DO      = hours_img <= t_DO_end_h;
+    hours_img_DO = hours_img(mask_DO);
+    DO_pct_plot  = DO_pct(mask_DO);
+    DO_std_plot  = DO_pct_std(mask_DO);
+end
  
 %% =========================================================
 %  COLORS
@@ -145,7 +162,7 @@ hold(ax, 'on');
 %% =========================================================
 %  LEFT Y-AXIS — hydraulic parameter
 %% =========================================================
-yyaxis(ax, 'left');
+yyaxis(ax, hydraulicAxis);
  
 if flag_cP
     hydraulicColor = clrQ;
@@ -159,6 +176,8 @@ if flag_cP
     ax.YTickLabel = arrayfun(@num2str, 0:2:12, 'UniformOutput', false);
     hZ = yline(ax, 0, '--', 'Color', hydraulicColor, 'LineWidth', 0.9, 'Alpha', 0.5);
     hZ.Annotation.LegendInformation.IconDisplayStyle = 'off';
+    biomass_occ_ant_loc = [0.994474206349205 0.0208333333333336 0.350051587301587 0.0972222222222222];
+    bulk_do_ant_loc = [0.975128968253961 0.2075 0.225694444444444 0.0972222222222222];
 else
     hydraulicColor = clrDP;
     plot(ax, hours_p, dp_smooth, '-', ...
@@ -167,35 +186,37 @@ else
         'Color', hydraulicColor, 'FontSize', 10, 'FontWeight', 'bold');
     ax.YColor = hydraulicColor;
     ylim(ax, [0  max(dp_smooth)*1.15 + eps]);
+    biomass_occ_ant_loc = [0.0908283730158643 0.0208333333333336 0.350051587301585 0.0972222222222222];
+    bulk_do_ant_loc = [0.07148313492062 0.2075 0.225694444444443 0.0972222222222222];
 end
  
 %% =========================================================
 %  RIGHT Y-AXIS — Biomass (%) and DO (rescaled %)
 %% =========================================================
-yyaxis(ax, 'right');
+yyaxis(ax, bioDOAxis);
  
 % DO: shaded band first, then line (behind biomass)
-xFill_DO = [hours_img_DO(:); flipud(hours_img_DO(:))];
-yFill_DO = [DO_pct_plot(:) + DO_std_plot(:); ...
-            flipud(DO_pct_plot(:) - DO_std_plot(:))];
-yFill_DO = max(yFill_DO, 0);
-hDOband = fill(ax, xFill_DO, yFill_DO, clrDO, ...
-    'FaceAlpha', 0.15, 'EdgeColor', 'none');
-hDOband.Annotation.LegendInformation.IconDisplayStyle = 'off';
- 
-plot(ax, hours_img_DO, DO_pct_plot, '-', ...
-    'Color', clrDO, 'LineWidth', 2);
- 
-% Biomass: line only (no std band)
+if hasDO
+    xFill_DO = [hours_img_DO(:); flipud(hours_img_DO(:))];
+    yFill_DO = [DO_pct_plot(:) + DO_std_plot(:); ...
+                flipud(DO_pct_plot(:) - DO_std_plot(:))];
+    yFill_DO = max(yFill_DO, 0);
+    hDOband = fill(ax, xFill_DO, yFill_DO, clrDO, ...
+        'FaceAlpha', 0.15, 'EdgeColor', 'none');
+    hDOband.Annotation.LegendInformation.IconDisplayStyle = 'off';
+
+    plot(ax, hours_img_DO, DO_pct_plot, '-', ...
+        'Color', clrDO, 'LineWidth', 2);
+end
+
 plot(ax, hours_img, biomass_occ, '-', ...
     'Color', clrBio, 'LineWidth', 2);
- 
-% Right-axis tick formatting — neutral tick color; label drawn manually below
+
 ylim(ax, [0  100]);
 ax.YTick      = 0:20:100;
 ax.YTickLabel = arrayfun(@(v) sprintf('%d%%', v), 0:20:100, 'UniformOutput', false);
-ax.YColor     = [0.25 0.25 0.25];   % neutral grey for tick marks and numbers
-ylabel(ax, '');                      % suppress default ylabel text
+ax.YColor     = [0.25 0.25 0.25];
+ylabel(ax, '');                    % suppress default ylabel text
  
 %% =========================================================
 %  X-AXIS
@@ -231,6 +252,29 @@ end
  
 % Force layout so positions are finalised
 drawnow;
+axPos = ax.Position;   % [left bottom width height], figure-normalized
+boxW  = 0.035;
+gap   = 0.018;
+
+if strcmp(bioDOAxis, 'right')
+    xPos = axPos(1) + axPos(3) + gap;   % just outside right spine
+else
+    xPos = axPos(1) - gap - boxW;       % just outside left spine
+end
+
+if hasDO
+    doPos  = [xPos, axPos(2) + axPos(4)*0.5, boxW, axPos(4)*0.5];
+    bioPos = [xPos, axPos(2),                boxW, axPos(4)*0.5];
+
+    annotation(fig, 'textbox', doPos, ...
+        'String', 'Bulk DO concentration', 'Color', clrDO, ...
+        'FontSize', 9, 'FontWeight', 'bold', ...
+        'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', ...
+        'Rotation', 90, 'EdgeColor', 'none', 'BackgroundColor', 'none', ...
+        'Interpreter', 'none');
+else
+    bioPos = [xPos, axPos(2), boxW, axPos(4)];
+end
  
 %% =========================================================
 %  TWO-COLOR RIGHT YLABEL via annotation('textbox')
@@ -246,7 +290,7 @@ drawnow;
 % DO (teal) — position from auto-generated code
 doLabel = sprintf('Bulk DO concentration', DO_MAX_MGPL);
 annotation(fig, 'textbox', ...
-    [0.975128968253961 0.2075 0.225694444444444 0.0972222222222222], ...
+    bulk_do_ant_loc, ...
     'String',              doLabel, ...
     'Color',               clrDO, ...
     'FontSize',            9, ...
@@ -260,7 +304,7 @@ annotation(fig, 'textbox', ...
  
 % Biomass (olive) — position from auto-generated code
 annotation(fig, 'textbox', ...
-    [0.994474206349205 0.0208333333333336 0.350051587301587 0.0972222222222222], ...
+    biomass_occ_ant_loc, ...
     'String',              'Biomass occupation', ...
     'Color',               clrBio, ...
     'FontSize',            9, ...
