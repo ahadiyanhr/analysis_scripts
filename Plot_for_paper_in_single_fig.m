@@ -252,29 +252,6 @@ end
  
 % Force layout so positions are finalised
 drawnow;
-axPos = ax.Position;   % [left bottom width height], figure-normalized
-boxW  = 0.035;
-gap   = 0.018;
-
-if strcmp(bioDOAxis, 'right')
-    xPos = axPos(1) + axPos(3) + gap;   % just outside right spine
-else
-    xPos = axPos(1) - gap - boxW;       % just outside left spine
-end
-
-if hasDO
-    doPos  = [xPos, axPos(2) + axPos(4)*0.5, boxW, axPos(4)*0.5];
-    bioPos = [xPos, axPos(2),                boxW, axPos(4)*0.5];
-
-    annotation(fig, 'textbox', doPos, ...
-        'String', 'Bulk DO concentration', 'Color', clrDO, ...
-        'FontSize', 9, 'FontWeight', 'bold', ...
-        'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', ...
-        'Rotation', 90, 'EdgeColor', 'none', 'BackgroundColor', 'none', ...
-        'Interpreter', 'none');
-else
-    bioPos = [xPos, axPos(2), boxW, axPos(4)];
-end
  
 %% =========================================================
 %  TWO-COLOR RIGHT YLABEL via annotation('textbox')
