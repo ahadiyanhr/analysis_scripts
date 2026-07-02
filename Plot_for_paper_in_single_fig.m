@@ -23,7 +23,7 @@ clear; clc; close all;
 %% =========================================================
 
 % --- Hydraulic flag ---
-flag_cP = false;          % true  → plot flowrate on left axis (cP condition)
+flag_cP = true;          % true  → plot flowrate on left axis (cP condition)
                          % false → plot ΔP      on left axis (cQ condition)
 
 % --- DO truncation ---
@@ -33,8 +33,8 @@ t_DO_end_h = inf;         % DO line/fill drawn from t=0 up to this elapsed hour
 DO_MAX_MGPL = 8;         % 100 % on the right axis = this many mg/L
 
 % --- Event lines ---
-eventTimes  = []; %[8.5, 13.1, 22.0, 37.5];                              % <-- edit: elapsed hours
-eventLabels = {}; %{'a,e', 'b,f', 'c,g', 'd,h'}; % <-- edit: one label per time
+eventTimes  = [11.3]; %[8.5, 13.1, 22.0, 37.5];                              % <-- edit: elapsed hours
+eventLabels = {'bioclogging'}; %{'a,e', 'b,f', 'c,g', 'd,h'}; % <-- edit: one label per time
 eventColor  = [0.0 0.0 0.0];   % dark charcoal
 eventLW     = 1;
 
@@ -224,7 +224,7 @@ ylabel(ax, '');                    % suppress default ylabel text
 xMax_h = max([hours_q(:); hours_p(:); hours_img(:)]);
 xlim(ax, [0  xMax_h]);
 xTicks = ax.XTick;
-ax.XTick = xTicks(2:end-1);   % drop first and last auto tick
+ax.XTick = xTicks(2:end);   % drop first and last auto tick
 xlabel(ax, 'Experiment time (h)', 'FontSize', 10, 'FontWeight', 'bold');
  
 %% =========================================================
