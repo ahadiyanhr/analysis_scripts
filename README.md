@@ -266,3 +266,12 @@ MainFolderProject/
 > *Note:* The mask and images should be registered and aligned.
 
 ---
+
+### **Sensity Evolution Plot**
+
+- Generates a space-time heatmap of biofilm density evolution from thresholded biomass matrices produced.
+- Just need to open below code in Matlab and define inputs:
+  ```
+  plot_density_evolution.m
+  ```
+---
