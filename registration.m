@@ -284,7 +284,7 @@ for i = 1:nImgs_loop
             biofilm_mask = logical(newimg_bin) & ~grain_mask;        % biofilm that does NOT overlap grains
             
             Final_Matrix(grain_mask)    = NaN;                       % Step 2: grains → NaN
-            Final_Matrix(biofilm_mask)  = newimgGray_norm(biofilm_mask); % Step 3: biomass → density [0,1]
+            Final_Matrix(biofilm_mask) = 1 - newimgGray_norm(biofilm_mask);  % Step 3: biomass → density [0,1]
 
             % % Display before and after thresholding
             % figure;
