@@ -29,12 +29,15 @@ flag_cP = true;          % true  → plot flowrate on left axis (cP condition)
 % --- DO truncation ---
 t_DO_end_h = inf;         % DO line/fill drawn from t=0 up to this elapsed hour
 
+% --- Biomass truncation ---
+t_bio_end_h = 95;        % Biomass line/fill drawn from t=0 up to this elapsed hour
+
 % --- DO physical scale for right-axis normalisation ---
 DO_MAX_MGPL = 8;         % 100 % on the right axis = this many mg/L
 
 % --- Event lines ---
-eventTimes  = [11.3]; %[8.5, 13.1, 22.0, 37.5];                              % <-- edit: elapsed hours
-eventLabels = {'bioclogging'}; %{'a,e', 'b,f', 'c,g', 'd,h'}; % <-- edit: one label per time
+eventTimes  = [71.87];          % <-- edit: e.g. [24, 48, 72]
+eventLabels = {'move the reactor'};          % <-- edit: e.g. {'PSS onset', 'Sloughing', 'Re-clogging'}
 eventColor  = [0.0 0.0 0.0];   % dark charcoal
 eventLW     = 1;
 
@@ -137,6 +140,14 @@ if hasDO
     DO_pct_plot  = DO_pct(mask_DO);
     DO_std_plot  = DO_pct_std(mask_DO);
 end
+
+%% =========================================================
+%  BIOMASS TRUNCATION
+%% =========================================================
+mask_bio       = hours_img <= t_bio_end_h;
+hours_img_bio  = hours_img(mask_bio);
+biomass_plot   = biomass_occ(mask_bio);
+biomass_std_plot = biomass_occ_std(mask_bio);
  
 %% =========================================================
 %  COLORS
@@ -209,7 +220,16 @@ if hasDO
         'Color', clrDO, 'LineWidth', 2);
 end
 
-plot(ax, hours_img, biomass_occ, '-', ...
+% Biomass: shaded band first, then line
+xFill_bio = [hours_img_bio(:); flipud(hours_img_bio(:))];
+yFill_bio = [biomass_plot(:) + biomass_std_plot(:); ...
+             flipud(biomass_plot(:) - biomass_std_plot(:))];
+yFill_bio = max(yFill_bio, 0);
+hBioband = fill(ax, xFill_bio, yFill_bio, clrBio, ...
+    'FaceAlpha', 0.15, 'EdgeColor', 'none');
+hBioband.Annotation.LegendInformation.IconDisplayStyle = 'off';
+
+plot(ax, hours_img_bio, biomass_plot, '-', ...
     'Color', clrBio, 'LineWidth', 2);
 
 ylim(ax, [0  100]);
@@ -224,7 +244,7 @@ ylabel(ax, '');                    % suppress default ylabel text
 xMax_h = max([hours_q(:); hours_p(:); hours_img(:)]);
 xlim(ax, [0  xMax_h]);
 xTicks = ax.XTick;
-ax.XTick = xTicks(2:end);   % drop first and last auto tick
+ax.XTick = xTicks(2:end-1);   % drop first and last auto tick
 xlabel(ax, 'Experiment time (h)', 'FontSize', 10, 'FontWeight', 'bold');
  
 %% =========================================================
