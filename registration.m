@@ -273,27 +273,16 @@ for i = 1:nImgs_loop
             newimgGray_norm = newimgGray_d0 / 65535;
             clear newimgGray newimgGray_d0
             
-            % Build output matrix with the correct structure:
-            %   grains         → NaN
-            %   empty pores    → 0
-            %   biomass pixels → normalized intensity [0, 1] (proxy for density)
+            % Keep the value only where a pixel is flagged as biofilm.
+            % newimg_bin already has grain overlap zeroed out (Step 6.5), so masking
+            % on newimg_bin==0 excludes grain AND non-biofilm pore in one step —
+            % no separate grain_mask/biofilm_mask needed.
+            newimgGray_norm_biofilm = newimgGray_norm;
+            newimgGray_norm_biofilm(newimg_bin == 0) = NaN;
             
-            Final_Matrix = zeros(size(newimgGray_norm));             % Step 1: everything starts as 0 (empty pore)
-            
-            grain_mask   = logical(GM_Final);
-            biofilm_mask = logical(newimg_bin) & ~grain_mask;        % biofilm that does NOT overlap grains
-            
-            Final_Matrix(grain_mask)    = NaN;                       % Step 2: grains → NaN
-            Final_Matrix(biofilm_mask) = 1 - newimgGray_norm(biofilm_mask);  % Step 3: biomass → density [0,1]
-
-            % % Display before and after thresholding
-            % figure;
-            % subplot(1,2,1); imshow(newimgGray_norm_poreAll); title('Before Thresholding');
-            % subplot(1,2,2); imshow(newimgGray_norm_biofilm);  title('After Thresholding');
-
             % --- Step 6.7: Gap fill, reshape, and save ---
             cd(funcPath);
-            Final_Biofilm_Matrix_OF = fill_gaps(Final_Matrix);
+            Final_Biofilm_Matrix_OF = fill_gaps(newimgGray_norm_biofilm);
             
             frameID = sprintf('%02d', i-1);
             varName = ['thresholded_' frameID];
@@ -302,10 +291,9 @@ for i = 1:nImgs_loop
             fprintf('Biofilm matrix saved: %s\n', varName);
 
             % Free everything before next iteration
-            clear Final_Matrix newimgGray_norm ...
+            clear newimgGray_norm_biofilm Density_original_reshaped newimgGray_norm ...
                   newimg_bin nonZeroMask nearestLinearIdx ...
-                  nearestIdxRow nearestIdxCol zeroMask newimg ...
-                  grain_mask biofilm_mask
+                  nearestIdxRow nearestIdxCol zeroMask newimg
             eval(['clear ' varName]);  % clear the dynamically named variable too
         else
             clear aligned_img img  % free FRET channel too
