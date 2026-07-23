@@ -107,7 +107,7 @@ MainFolderProject/
   - `pressure_diff`
 > *Note:* Use [this template](https://github.com/ahadiyanhr/analysis_scripts/tree/main/table_templates) for your reference.
   
-### **Optode Calibration**
+### **Optode Calibration (if any)**
 > *Note:* For optode calibration procedure and protocol, see **here**.
 - Move folder **`optode_calibration`** into the main calibration images folder.
 - Open Fiji ImageJ, then using `Analyze > Tools > ROI Manager`, open the `calibrationROI.roi`.
@@ -165,7 +165,7 @@ MainFolderProject/
   processed_images/thresholded_images/sensitivity_0.##_main_results
   ```
   
-### **DO Ratio and Distribution Heatmap**
+### **DO Ratio and Distribution Heatmap (if any)**
 - Open and run in MATLAB:
   ```
   ratio_cal.m
@@ -199,7 +199,7 @@ MainFolderProject/
   processed_data/biomass_occupation_bulkDO/
   ```
 
-### **Biomass Density Overlay**
+### **Biomass Density Overlay (not up to date code)**
 - Open and run in MATLAB:
   ```
   bioOccu_density_overlay.m
@@ -209,7 +209,7 @@ MainFolderProject/
   processed_data/biomass_density_overlay/
   ```
 
-### **%Growth and %Erosion Calculation**
+### **%Growth and %Erosion Calculation (not up to date code)**
 - Open and run in MATLAB:
   ```
   growth_erosion_cal.m
@@ -223,7 +223,7 @@ MainFolderProject/
   processed_images/growth_erosion_images/
   ```
 
-### **Biomass Age Calculation**
+### **Biomass Age Calculation (not up to date code)**
 - Open and run in MATLAB:
   ```
   biomass_age_cal.m
@@ -248,7 +248,7 @@ MainFolderProject/
   processed_data/plots/
   ```
 
-### **Biomass Age Plot**
+### **Biomass Age Plot (not up to date code)**
 - For Ridgeline and Density plots, run in MATLAB:
   ```
   plot_biomass_age.m
