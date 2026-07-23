@@ -192,9 +192,19 @@ for i = 1:nImgs_loop
                     img = img(:,:,2);
                 end
         end
-        img = im2uint16(img);   % <-- promote 8-bit to 16-bit, same scaling as img0
+
+        % Determine canvas size the same way ImageJ did. Correct for the
+        % offset. max width and max height across the WHOLE set Fiji stacked (per channel).
+        allH = zeros(nImgs,1); allW = zeros(nImgs,1);
+        for k = 1:nImgs
+            info = imfinfo(fullfile(tifRawImagesPath, imgNames{k}));
+            allH(k) = info.Height; allW(k) = info.Width;
+        end
+        canvasH = max(allH); canvasW = max(allW);
 
         % Reference and transform
+        img = im2uint16(img);   % <-- promote 8-bit to 16-bit, same scaling as img0
+        img = padToCanvasCenter(img, canvasH, canvasW);
         R_img = imref2d(size(img));
         aligned_img = imwarp(img, R_img, tforms{i}, 'OutputView', R_mask);
 
@@ -315,3 +325,12 @@ yline(1, '--k', 'No drift'); grid on;
 saveas(gcf, fullfile(plotPath, 'Illumination_drift_correction_factors.png'));
 
 disp('All images registered, biofilm thresholded, and matrices saved.');
+
+
+function imgOut = padToCanvasCenter(imgIn, canvasH, canvasW)
+    [h, w, c] = size(imgIn);
+    yoff = floor((canvasH - h) / 2);   % same integer division as Java
+    xoff = floor((canvasW - w) / 2);
+    imgOut = zeros(canvasH, canvasW, c, 'like', imgIn);
+    imgOut(yoff+1:yoff+h, xoff+1:xoff+w, :) = imgIn;
+end
