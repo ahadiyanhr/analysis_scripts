@@ -277,18 +277,16 @@ for i = 1:nImgs_loop
 
             % --- Step 6.5: Remove grain overlap ---
             newimg_bin = newimg_bin .* imcomplement(GM_Final);
-
+            
             % --- Step 6.6: Normalize intensity and build output matrix ---
+            % Build labeled matrix: grain=NaN, pore=1, biofilm=intensity ---
             newimgGray_d0   = double(newimgGray);
             newimgGray_norm = newimgGray_d0 / 65535;
             clear newimgGray newimgGray_d0
             
-            % Keep the value only where a pixel is flagged as biofilm.
-            % newimg_bin already has grain overlap zeroed out (Step 6.5), so masking
-            % on newimg_bin==0 excludes grain AND non-biofilm pore in one step —
-            % no separate grain_mask/biofilm_mask needed.
-            newimgGray_norm_biofilm = newimgGray_norm;
-            newimgGray_norm_biofilm(newimg_bin == 0) = NaN;
+            newimgGray_norm_biofilm = ones(size(newimgGray_norm));        % default: open pore = 1
+            newimgGray_norm_biofilm(newimg_bin == 1) = newimgGray_norm(newimg_bin == 1);  % biofilm intensity
+            newimgGray_norm_biofilm(logical(GM_Final)) = NaN;              % grain, explicitly
             
             % --- Step 6.7: Gap fill, reshape, and save ---
             cd(funcPath);
