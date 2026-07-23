@@ -60,6 +60,13 @@ echo.
 echo Creating Logs folder...
 mkdir "logs"
 
+:: --- Create original files Folder ---
+echo.
+echo Creating Logs folder...
+mkdir "original_images_readings"
+mkdir "original_images_readings\Leica images"
+mkdir "original_images_readings\ElveFlow data"
+
 :: --- Create Docs Folder ---
 echo.
 echo Creating Docs folder...
