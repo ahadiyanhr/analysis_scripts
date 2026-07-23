@@ -72,6 +72,7 @@ MainFolderProject/
   - `..._ch00.tif` → Brightfield
   - `..._ch01.tif` → FRET
 > *Note:* If images are captured manually on timestamp-based filenames (e.g. 202607211658.tif), run "rename_tif_sequence.m" to rename them into a sequential stitched format of "stitched_tXX_ch00.tif".
+
 > *Note:* If you only need specific images (specific time) from an image series, you can use the **crop** tools in LAS X software. Simply set the start and end slice to create a new series from your original one.
 
 ### **Grain Mask Images**
