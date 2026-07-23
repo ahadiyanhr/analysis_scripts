@@ -1,3 +1,5 @@
+clear; clc; close all;
+
 %% Single-panel PNAS timeseries figure
 %
 % LEFT  y-axis : hydraulic parameter
@@ -14,32 +16,28 @@
 % Right ylabel: two-color text annotation (olive = biomass, teal = DO).
 %
 % Vertical event lines + labels above the panel.
-% Export: 7" × 2.5"  PDF (vector) + TIF (300 dpi)  — PNAS single-column
-
-clear; clc; close all;
+% Export: 7" × 2.5"  PDF (vector) + TIF (300 dpi)
 
 %% =========================================================
 %  USER SETTINGS  ← edit here
 %% =========================================================
 
 % --- Hydraulic flag ---
-flag_cP = true;          % true  → plot flowrate on left axis (cP condition)
+flag_cP = false;          % true  → plot flowrate on left axis (cP condition)
                          % false → plot ΔP      on left axis (cQ condition)
 
-% --- DO truncation ---
-t_DO_end_h = inf;         % DO line/fill drawn from t=0 up to this elapsed hour
+% --- Event lines ---
+eventTimes  = [];          % <-- edit: e.g. [24, 48, 72]
+eventLabels = {};          % <-- edit: e.g. {'PSS onset', 'Sloughing', 'Re-clogging'}
+eventColor  = [0.0 0.0 0.0];   % dark charcoal
+eventLW     = 1;
 
-% --- Biomass truncation ---
-t_bio_end_h = 95;        % Biomass line/fill drawn from t=0 up to this elapsed hour
+% --- Data truncation ---
+t_DO_end_h = inf;         % DO truncation
+t_bio_end_h = inf;        % Biomass truncation
 
 % --- DO physical scale for right-axis normalisation ---
 DO_MAX_MGPL = 8;         % 100 % on the right axis = this many mg/L
-
-% --- Event lines ---
-eventTimes  = [71.87];          % <-- edit: e.g. [24, 48, 72]
-eventLabels = {'move the reactor'};          % <-- edit: e.g. {'PSS onset', 'Sloughing', 'Re-clogging'}
-eventColor  = [0.0 0.0 0.0];   % dark charcoal
-eventLW     = 1;
 
 % --- Axis-side assignment ---
 % cP experiment: hydraulic (flowrate) on LEFT, biomass/DO on RIGHT
@@ -107,12 +105,12 @@ S = load(fullfile(bioDOPath, bioMatFile));
 biomass_occ     = S.data.biomass_occupation(:);
 biomass_occ_std = S.data.biomass_occupation_std(:);
 
-hasDO = isfield(S.data, 'bulk_do') && isfield(S.data, 'bulk_do_std');
+hasDO = isfield(S.data, 'bulk_do') && isfield(S.data, 'bulk_do_std') ...
+        && any(~isnan(S.data.bulk_do));
 if hasDO
     bulk_DO     = S.data.bulk_do(:);
     bulk_DO_std = S.data.bulk_do_std(:);
 end
-
 if length(biomass_occ) ~= length(t_img)
     error('Length of biomass_occ does not match imaging timestamps.');
 end
@@ -221,14 +219,6 @@ if hasDO
 end
 
 % Biomass: shaded band first, then line
-xFill_bio = [hours_img_bio(:); flipud(hours_img_bio(:))];
-yFill_bio = [biomass_plot(:) + biomass_std_plot(:); ...
-             flipud(biomass_plot(:) - biomass_std_plot(:))];
-yFill_bio = max(yFill_bio, 0);
-hBioband = fill(ax, xFill_bio, yFill_bio, clrBio, ...
-    'FaceAlpha', 0.15, 'EdgeColor', 'none');
-hBioband.Annotation.LegendInformation.IconDisplayStyle = 'off';
-
 plot(ax, hours_img_bio, biomass_plot, '-', ...
     'Color', clrBio, 'LineWidth', 2);
 
