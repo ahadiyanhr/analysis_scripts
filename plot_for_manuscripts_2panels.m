@@ -1,3 +1,4 @@
+clear; clc; close all;
 %% Two-panel square figure
 %
 % TOP PANEL (left y: biomass occupation %, right y: bulk DO mg/L)
@@ -6,7 +7,15 @@
 % X-axis: experiment time in hours, t0 = earliest timestamp across all signals
 % Vertical event lines: user-defined times + labels (edit eventTimes / eventLabels below)
 
-clear; clc; close all;
+%% -------------------------------------------------
+% USER-DEFINED EVENT LINES
+% Set elapsed-time positions (hours, same origin as t0) and labels.
+% Lines appear as dashed verticals on both panels.
+%% -------------------------------------------------
+eventTimes  = []; % <-- edit: elapsed hours
+eventLabels = {}; % <-- edit: one label per time
+eventColor  = [0.0 0.0 0.0];   % dark charcoal
+eventLW     = 1;
 
 %% -------------------------------------------------
 % Paths  (unchanged from original)
@@ -79,6 +88,12 @@ if length(bulk_DO) ~= length(t_img)
     error('Length of bulk_DO does not match imaging timestamps.');
 end
 
+% DO may be entirely NaN if no DO data was available for this experiment
+hasDO = any(~isnan(bulk_DO));
+if ~hasDO
+    warning('bulk_DO is all NaN — plotting biomass occupation only (no DO axis).');
+end
+
 %% -------------------------------------------------
 % Common t0 — earliest timestamp across all signals
 %% -------------------------------------------------
@@ -86,16 +101,6 @@ t0        = min([t_q; t_p; t_img]);
 hours_q   = hours(t_q   - t0);
 hours_p   = hours(t_p   - t0);
 hours_img = hours(t_img - t0);
-
-%% -------------------------------------------------
-% USER-DEFINED EVENT LINES
-% Set elapsed-time positions (hours, same origin as t0) and labels.
-% Lines appear as dashed verticals on both panels.
-%% -------------------------------------------------
-eventTimes  = [6.1, 11.2, 20.2, 37.3, 39.3, 50.4, 70.4, 112.7];                              % <-- edit: elapsed hours
-eventLabels = {'a,i', 'b,j', 'c,k', 'd,l', 'e,m', 'f,n', 'g,o', 'h,p'}; % <-- edit: one label per time
-eventColor  = [0.0 0.0 0.0];   % dark charcoal
-eventLW     = 1;
 
 %% -------------------------------------------------
 % Colors  (variable-based, colorblind-accessible)
@@ -125,13 +130,15 @@ tl = tiledlayout(2, 1, ...
     'Padding',     'compact');
 
 %% =================================================
-% TOP PANEL: Biomass occupation (left) + Bulk DO (right)
+% TOP PANEL: Biomass occupation (left) + Bulk DO (right, if available)
 %% =================================================
 axTop = nexttile(tl, 1);
 hold(axTop, 'on');
 
 % ---- Left y-axis: biomass (no error bars, small filled circles) ----
-yyaxis(axTop, 'left');
+if hasDO
+    yyaxis(axTop, 'left');   % only need to switch axes if a right axis will exist
+end
 plot(axTop, hours_img, biomass_occ, '-o', ...
     'Color',           clrBio, ...
     'MarkerFaceColor', clrBio, ...
@@ -146,31 +153,32 @@ yMaxBio = max(biomass_occ) * 1.15 + eps;
 ylim(axTop, [0  yMaxBio]);
 
 % ---- Right y-axis: bulk DO (shaded ±1 std band, small square markers) ----
-yyaxis(axTop, 'right');
+if hasDO
+    yyaxis(axTop, 'right');
 
-% Shaded band first (drawn underneath the line)
-xFill = [hours_img(:); flipud(hours_img(:))];
-yFill = [bulk_DO(:) + bulk_DO_std(:); flipud(bulk_DO(:) - bulk_DO_std(:))];
-yFill = max(yFill, 0);   % clamp to zero (DO cannot be negative)
-hBand = fill(axTop, xFill, yFill, clrDO, ...
-    'FaceAlpha', 0.15, ...
-    'EdgeColor', 'none');
-hBand.Annotation.LegendInformation.IconDisplayStyle = 'off';
+    % Shaded band first (drawn underneath the line)
+    xFill = [hours_img(:); flipud(hours_img(:))];
+    yFill = [bulk_DO(:) + bulk_DO_std(:); flipud(bulk_DO(:) - bulk_DO_std(:))];
+    yFill = max(yFill, 0);   % clamp to zero (DO cannot be negative)
+    hBand = fill(axTop, xFill, yFill, clrDO, ...
+        'FaceAlpha', 0.15, ...
+        'EdgeColor', 'none');
+    hBand.Annotation.LegendInformation.IconDisplayStyle = 'off';
 
-% Line + small square markers on top
-plot(axTop, hours_img, bulk_DO, '-s', ...
-    'Color',           clrDO, ...
-    'MarkerFaceColor', clrDO, ...
-    'MarkerEdgeColor', clrDO, ...
-    'MarkerSize',      markerSz, ...
-    'LineWidth',       lineWMain_top);
+    % Line + small square markers on top
+    plot(axTop, hours_img, bulk_DO, '-s', ...
+        'Color',           clrDO, ...
+        'MarkerFaceColor', clrDO, ...
+        'MarkerEdgeColor', clrDO, ...
+        'MarkerSize',      markerSz, ...
+        'LineWidth',       lineWMain_top);
 
-ylabel(axTop, 'Bulk DO concentration (mg L^{-1})', ...
-    'Color', clrDO, 'FontSize', axisfontsize, 'FontWeight', 'bold');
-axTop.YColor = clrDO;
-yMaxDO = max(bulk_DO + bulk_DO_std) * 1.15 + eps;
-ylim(axTop, [0  yMaxDO]);
-
+    ylabel(axTop, 'Bulk DO concentration (mg L^{-1})', ...
+        'Color', clrDO, 'FontSize', axisfontsize, 'FontWeight', 'bold');
+    axTop.YColor = clrDO;
+    yMaxDO = max(bulk_DO + bulk_DO_std) * 1.15 + eps;
+    ylim(axTop, [0  yMaxDO]);
+end
 
 % ---- Formatting ----
 grid(axTop, 'on');
