@@ -50,7 +50,8 @@ function [bm_mean, bm_std] = patch_biomass(mat_reactor, gm_reactor, nPatches)
         if pore_px == 0
             patch_occ(i) = NaN;
         else
-            patch_occ(i) = sum(patch(:) > 0 & ~isnan(patch(:))) / pore_px * 100;
+            biomass_px   = sum(patch(:) < 1 & ~isnan(patch(:)));  % biofilm: intensity below open-pore value
+            patch_occ(i) = biomass_px / pore_px * 100;
         end
     end
     patch_occ = patch_occ(~isnan(patch_occ));
