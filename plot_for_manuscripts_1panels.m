@@ -2,9 +2,9 @@ clear; clc; close all;
 
 %% Single-panel PNAS timeseries figure
 %
-% LEFT  y-axis : hydraulic parameter
-%                  flag_cP = true  → flowrate (µL/min),  blue
-%                  flag_cP = false → ΔP (mbar),          red
+% LEFT  y-axis : hydraulic parameter (auto-detected, see AUTO-DETECT section)
+%                  cP experiment (constant pressure) → flowrate (µL/min),  blue
+%                  cQ experiment (constant flowrate) → ΔP (mbar),          red
 %
 % RIGHT y-axis : unified 0–100 % scale
 %                  Biomass occupation (olive, solid line + shaded ±1σ)
@@ -17,14 +17,18 @@ clear; clc; close all;
 %
 % Vertical event lines + labels above the panel.
 % Export: 7" × 2.5"  PDF (vector) + TIF (300 dpi)
+%
+% Also saves a *_manuscript_data.mat file (processed_data/plots/replicate_data/)
+% with everything needed to overlay this experiment with its replicates later
+% using plot_for_manuscripts_1panel_replicates.m
 
 %% =========================================================
 %  USER SETTINGS  ← edit here
 %% =========================================================
 
 % --- Hydraulic flag ---
-flag_cP = false;          % true  → plot flowrate on left axis (cP condition)
-                         % false → plot ΔP      on left axis (cQ condition)
+% flag_cP is now AUTO-DETECTED below (see "AUTO-DETECT EXPERIMENT TYPE"),
+% using the same file-naming strategy as pq_cleaning.m. No need to set it here.
 
 % --- Event lines ---
 eventTimes  = [];          % <-- edit: e.g. [24, 48, 72]
@@ -33,22 +37,17 @@ eventColor  = [0.0 0.0 0.0];   % dark charcoal
 eventLW     = 1;
 
 % --- Data truncation ---
-t_DO_end_h = inf;         % DO truncation
+t_DO_end_h = 35.5;         % DO truncation
 t_bio_end_h = inf;        % Biomass truncation
 
 % --- DO physical scale for right-axis normalisation ---
 DO_MAX_MGPL = 8;         % 100 % on the right axis = this many mg/L
 
 % --- Axis-side assignment ---
-% cP experiment: hydraulic (flowrate) on LEFT, biomass/DO on RIGHT
-% cQ experiment: hydraulic (ΔP)       on RIGHT, biomass/DO on LEFT
-if flag_cP
-    hydraulicAxis = 'left';
-    bioDOAxis     = 'right';
-else
-    hydraulicAxis = 'right';
-    bioDOAxis     = 'left';
-end
+% Hydraulic parameter (flowrate for cP, ΔP for cQ) always on LEFT,
+% biomass/DO always on RIGHT, so both experiment types share the same layout.
+hydraulicAxis = 'left';
+bioDOAxis     = 'right';
 
 %% =========================================================
 %  PATHS
@@ -56,19 +55,54 @@ end
 mainPath    = pwd;
 cd(mainPath); cd('../');
 projectPath = pwd;
- 
+
 cd(projectPath); cd('processed_data\pq_cleaned_data\');
 pdCleanedPath = pwd;
- 
+
 cd(projectPath); cd('logs\');
 logsPath = pwd;
- 
+
 cd(projectPath); cd('processed_data\biomass_occupation_bulkDO\');
 bioDOPath = pwd;
- 
+
 cd(projectPath); cd('processed_data\plots\');
 plotPath = pwd;
- 
+
+cd(projectPath); cd('processed_data\plots\replicate_data\');
+if ~exist(pwd, 'dir')
+    mkdir(pwd);
+end
+repDataPath = pwd;
+
+cd(projectPath); cd('raw_data\sensor_readings\');
+sensorReadingPath = pwd;
+
+cd(projectPath);
+[~, expLabel] = fileparts(projectPath);   % experiment/replicate label = project folder name
+
+%% =========================================================
+%  AUTO-DETECT EXPERIMENT TYPE  (same strategy as pq_cleaning.m)
+%% =========================================================
+files = dir(fullfile(sensorReadingPath, '*.txt'));
+
+exp_type = '';
+for i = 1:length(files)
+    fname = files(i).name;
+    if contains(fname, '__reader_pressures')
+        exp_type = 'ConstantFlowRate';
+    elseif contains(fname, '__reader_flowrate')
+        exp_type = 'ConstantPressure';
+    end
+end
+
+if isempty(exp_type)
+    error('Experiment type not recognized from raw_data\\sensor_readings\\*.txt.\nMake sure files are named as in pq_cleaning.m (__reader_pressures / __reader_flowrate).');
+end
+
+flag_cP = strcmp(exp_type, 'ConstantPressure');   % true → flowrate on left axis (cP)
+                                                   % false → ΔP on left axis (cQ)
+fprintf('Detected experiment type: %s (flag_cP = %d)\n', exp_type, flag_cP);
+
 %% =========================================================
 %  FILE NAMES
 %% =========================================================
@@ -146,7 +180,42 @@ mask_bio       = hours_img <= t_bio_end_h;
 hours_img_bio  = hours_img(mask_bio);
 biomass_plot   = biomass_occ(mask_bio);
 biomass_std_plot = biomass_occ_std(mask_bio);
- 
+
+%% =========================================================
+%  SAVE DATA FOR REPLICATE / MULTI-EXPERIMENT COMBINING
+%  Everything needed by plot_for_manuscripts_1panel_replicates.m
+%  to overlay this experiment with its replicates later.
+%% =========================================================
+repData = struct();
+repData.expLabel     = expLabel;
+repData.exp_type     = exp_type;
+repData.flag_cP      = flag_cP;
+repData.DO_MAX_MGPL  = DO_MAX_MGPL;
+
+repData.hours_q   = hours_q;
+repData.q_smooth  = q_smooth;
+repData.hours_p   = hours_p;
+repData.dp_smooth = dp_smooth;
+
+repData.hours_img_bio    = hours_img_bio;
+repData.biomass_plot     = biomass_plot;
+repData.biomass_std_plot = biomass_std_plot;
+
+repData.hasDO = hasDO;
+if hasDO
+    repData.hours_img_DO = hours_img_DO;
+    repData.DO_pct_plot  = DO_pct_plot;
+    repData.DO_std_plot  = DO_std_plot;
+end
+
+repData.eventTimes  = eventTimes;
+repData.eventLabels = eventLabels;
+repData.xMax_h      = max([hours_q(:); hours_p(:); hours_img(:)]);
+
+repMatOut = fullfile(repDataPath, sprintf('%s_manuscript_data.mat', expLabel));
+save(repMatOut, 'repData');
+fprintf('Saved replicate data:\n  %s\n', repMatOut);
+
 %% =========================================================
 %  COLORS
 %% =========================================================
@@ -172,7 +241,12 @@ hold(ax, 'on');
 %  LEFT Y-AXIS — hydraulic parameter
 %% =========================================================
 yyaxis(ax, hydraulicAxis);
- 
+
+% Annotation positions (right-side, since biomass/DO axis is always RIGHT now).
+% Positions calibrated from MATLAB auto-generated figure code (29-Jun-2026).
+biomass_occ_ant_loc = [0.994474206349205 0.0208333333333336 0.350051587301587 0.0972222222222222];
+bulk_do_ant_loc = [0.975128968253961 0.2075 0.225694444444444 0.0972222222222222];
+
 if flag_cP
     hydraulicColor = clrQ;
     plot(ax, hours_q, q_smooth, '-', ...
@@ -185,8 +259,6 @@ if flag_cP
     ax.YTickLabel = arrayfun(@num2str, 0:2:12, 'UniformOutput', false);
     hZ = yline(ax, 0, '--', 'Color', hydraulicColor, 'LineWidth', 0.9, 'Alpha', 0.5);
     hZ.Annotation.LegendInformation.IconDisplayStyle = 'off';
-    biomass_occ_ant_loc = [0.994474206349205 0.0208333333333336 0.350051587301587 0.0972222222222222];
-    bulk_do_ant_loc = [0.975128968253961 0.2075 0.225694444444444 0.0972222222222222];
 else
     hydraulicColor = clrDP;
     plot(ax, hours_p, dp_smooth, '-', ...
@@ -195,8 +267,6 @@ else
         'Color', hydraulicColor, 'FontSize', 10, 'FontWeight', 'bold');
     ax.YColor = hydraulicColor;
     ylim(ax, [0  max(dp_smooth)*1.15 + eps]);
-    biomass_occ_ant_loc = [0.0908283730158643 0.0208333333333336 0.350051587301585 0.0972222222222222];
-    bulk_do_ant_loc = [0.07148313492062 0.2075 0.225694444444443 0.0972222222222222];
 end
  
 %% =========================================================
