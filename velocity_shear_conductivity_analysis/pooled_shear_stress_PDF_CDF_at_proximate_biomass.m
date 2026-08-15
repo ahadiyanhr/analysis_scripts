@@ -65,6 +65,21 @@ inset_xlim     = [0.00025 0.1];    % [lo hi] in Pa — EDIT to the region you wa
 inset_ylim     = [0 140];            % [] = auto-fit to data within inset_xlim; or set [lo hi] manually
 inset_position = [0.08 0.08 0.34 0.34];
 
+
+
+% ---- PNAS FIGURE STYLE -------------------------------------------
+%  Applied uniformly across both output figures (main axes AND their
+%  insets) via style_pnas_axes() at the bottom.
+pnas_font            = 'Helvetica';
+pnas_fontsize        = 8;     % body text / axis labels / legend
+pnas_fontsize_inset  = 7;     % insets are smaller physically, so smaller font
+pnas_fontsize_title  = 9;     % kept small; consider omitting titles entirely
+                               % for the final submission figure and moving
+                               % this text into the manuscript caption instead
+pnas_linewidth       = 1.2;   % data line width (was 2.4 — too heavy for print)
+pnas_linewidth_inset = 1.0;
+pnas_axlinewidth     = 0.75;
+save_pdf_vector      = true;  % also export a vector .pdf alongside .png
 %% ================================================================
 %  SECTION 2 — SETUP
 %
@@ -78,11 +93,13 @@ fprintf('Output folder: %s\n', folder_plots);
 
 folder_paths = {folder_cP, folder_cQ_high, folder_cQ_low};
 
-% Fixed style order (position-based): 1st folder = cP-style role,
-% 2nd = cQ_high-style role, 3rd = cQ_low-style role, regardless of
-% what each folder happens to be named.
-STYLE_COLORS = {[0.85 0.20 0.20], [0.10 0.30 0.65], [0.45 0.70 0.90]};
-STYLE_LINES  = {'-',              '-',               '--'};
+% Colorblind-safe palette (Okabe-Ito derived): blue / orange /
+% bluish-green. Distinguishable by BOTH hue and lightness, so it
+% still separates cleanly when converted to grayscale for print.
+STYLE_COLORS = {[0.00 0.45 0.70], ...   % blue          (cP-style role)
+                [0.90 0.60 0.00], ...   % orange        (cQ_high-style role)
+                [0.00 0.62 0.45]};      % bluish-green  (cQ_low-style role)
+STYLE_LINES  = {'-',              '--',               '-.'};
 
 groups = struct('folder', {}, 'type', {}, 'label', {});
 clr = containers.Map();   % type_id -> color
@@ -226,7 +243,9 @@ end
 % ================================================================
 fprintf('\nGenerating pooled PDF plot (absolute Pa) ...\n');
 
-fig_ct = figure('Position',[0 0 860 540]);
+fig_ct = figure('Position',[0 0 620 460]);
+set(fig_ct, 'Color', 'w');   % figure background (outside the axes box)
+
 ax_ct  = axes(fig_ct); hold(ax_ct,'on');
 h_ct   = gobjects(0);
 lbl_ct = {};
@@ -239,7 +258,7 @@ for k = 1:numel(types_present)
     [xi_g, fi_g] = pdf_shear(v_pool, pdf_n_bins, pdf_log_scale);
     pdf_curve.(tp) = [xi_g(:), fi_g(:)];
     h = plot(ax_ct, xi_g, fi_g, lsc(tp), ...
-        'Color', clr(tp), 'LineWidth', 2.4, ...
+        'Color', clr(tp), 'LineWidth', pnas_linewidth, ...
         'DisplayName', type_labels(tp));
     h_ct(end+1)   = h;   %#ok<AGROW>
     lbl_ct{end+1} = type_labels(tp); %#ok<AGROW>
@@ -248,27 +267,28 @@ end
 if pdf_log_scale
     set(ax_ct, 'XScale', 'log');
     set(ax_ct, 'YScale', 'log');
-    xlabel(ax_ct, 'Shear stress \tau  (Pa)', 'FontSize', 12);
-else
-    xlabel(ax_ct, 'Shear stress \tau  (Pa)', 'FontSize', 12);
 end
-ylabel(ax_ct, 'Probability density  (Pa^{-1})', 'FontSize', 12);
+xlabel(ax_ct, 'Shear stress \tau  (Pa)', 'FontSize', pnas_fontsize, 'FontName', pnas_font);
+ylabel(ax_ct, 'Probability density  (Pa^{-1})', 'FontSize', pnas_fontsize, 'FontName', pnas_font);
 title(ax_ct, 'PDF of Shear Stress at Proximate Biomass', ...
-    'FontSize', 13, 'FontWeight', 'bold');
+    'FontSize', pnas_fontsize_title, 'FontWeight', 'bold', 'FontName', pnas_font);
 
-% ---- 1st / 99th percentile markers (dashed vertical lines, per type) ----
+% ---- 1st / 99th percentile markers (per type, same line style as that
+%      type's own data curve, so the marker reads as "belonging" to it) ----
 yl_ct = ylim(ax_ct);
 for k = 1:numel(types_present)
     tp = types_present{k};
-    plot(ax_ct, [pct_lo.(tp) pct_lo.(tp)], yl_ct, ':', ...
+    plot(ax_ct, [pct_lo.(tp) pct_lo.(tp)], yl_ct, lsc(tp), ...
         'Color', clr(tp), 'LineWidth', 1.3, 'HandleVisibility', 'off');
-    plot(ax_ct, [pct_hi.(tp) pct_hi.(tp)], yl_ct, ':', ...
+    plot(ax_ct, [pct_hi.(tp) pct_hi.(tp)], yl_ct, lsc(tp), ...
         'Color', clr(tp), 'LineWidth', 1.3, 'HandleVisibility', 'off');
 end
 ylim(ax_ct, yl_ct);
 
-legend(ax_ct, h_ct, lbl_ct, 'Location','northeast','FontSize',10,'Interpreter','none');
-grid(ax_ct,'on'); box(ax_ct,'off'); hold(ax_ct,'off');
+legend(ax_ct, h_ct, lbl_ct, 'Location','northeast', ...
+    'FontSize', pnas_fontsize, 'FontName', pnas_font, 'Box','off', 'Interpreter','none');
+style_pnas_axes(ax_ct, pnas_font, pnas_fontsize, pnas_axlinewidth);
+hold(ax_ct,'off');
 
 % ---- Bottom-left inset: zoomed close-up on [inset_xlim, inset_ylim] ----
 %  Re-plots the same pooled curves (from pdf_curve, computed once above)
@@ -283,7 +303,7 @@ if inset_on
     end
     rectangle(ax_ct, 'Position', ...
         [inset_xlim(1), rect_ylim(1), diff(inset_xlim), diff(rect_ylim)], ...
-        'EdgeColor', [0.3 0.3 0.3], 'LineStyle', '-', 'LineWidth', 1.0);
+        'EdgeColor', [0.3 0.3 0.3], 'LineStyle', '-', 'LineWidth', 0.75);
 
     % Convert inset_position (fraction of main axes) to absolute
     % figure-normalised coordinates required by axes('Position', ...)
@@ -298,7 +318,7 @@ if inset_on
         tp   = types_present{k};
         curv = pdf_curve.(tp);
         plot(ax_inset, curv(:,1), curv(:,2), lsc(tp), ...
-            'Color', clr(tp), 'LineWidth', 1.8, 'HandleVisibility', 'off');
+            'Color', clr(tp), 'LineWidth', pnas_linewidth_inset, 'HandleVisibility', 'off');
     end
     xlim(ax_inset, inset_xlim);
     if ~isempty(inset_ylim)
@@ -307,14 +327,14 @@ if inset_on
     if pdf_log_scale
         set(ax_inset, 'XScale', 'log');
     end
-    set(ax_inset, 'FontSize', 8, 'Box', 'on');
-    grid(ax_inset, 'on');
+    style_pnas_axes(ax_inset, pnas_font, pnas_fontsize_inset, pnas_axlinewidth * 0.85);
+    ax_inset.Box = 'on';   % insets keep a full box border to read as a distinct panel
     hold(ax_inset, 'off');
 end
 
-fpath_ct = fullfile(folder_plots, 'pdf_shear_proximate_across_types.png');
-save_png(fig_ct, fpath_ct, png_dpi);
-fprintf('  Saved: pdf_shear_proximate_across_types.png\n');
+fpath_ct = fullfile(folder_plots, 'pdf_shear_proximate_across_types');
+save_png(fig_ct, fpath_ct, png_dpi, [], [], save_pdf_vector);
+fprintf('  Saved: pdf_shear_proximate_across_types.png/.pdf\n');
 
 %% ================================================================
 %  SECTION 5 — PLOT: Pooled CDF across types (absolute Pa)
@@ -326,7 +346,9 @@ fprintf('  Saved: pdf_shear_proximate_across_types.png\n');
 % ================================================================
 fprintf('Generating pooled CDF plot (absolute Pa) ...\n');
 
-fig_cdf = figure('Position',[0 0 860 540]);
+fig_cdf = figure('Position',[0 0 620 460]);
+set(fig_cdf, 'Color', 'w');   % figure background (outside the axes box)
+% set(ax_cdf,  'Color', 'w');   % axes background (the plot area itself)
 ax_cdf  = axes(fig_cdf); hold(ax_cdf,'on');
 h_cdf   = gobjects(0);
 lbl_cdf = {};
@@ -337,7 +359,7 @@ for k = 1:numel(types_present)
 
     [xs, Fs] = empirical_cdf(v_pool);
     h = plot(ax_cdf, xs, Fs, lsc(tp), ...
-        'Color', clr(tp), 'LineWidth', 2.4, ...
+        'Color', clr(tp), 'LineWidth', 3, ...
         'DisplayName', type_labels(tp));
     h_cdf(end+1)   = h;   %#ok<AGROW>
     lbl_cdf{end+1} = type_labels(tp); %#ok<AGROW>
@@ -346,27 +368,32 @@ end
 if pdf_log_scale
     set(ax_cdf, 'XScale', 'log');
     % set(ax_cdf, 'YScale', 'log');
-    xlabel(ax_cdf, 'Shear stress \tau  (Pa)', 'FontSize', 12);
-else
-    xlabel(ax_cdf, 'Shear stress \tau  (Pa)', 'FontSize', 12);
 end
-ylabel(ax_cdf, 'Cumulative probability', 'FontSize', 12);
+xlabel(ax_cdf, 'Shear stress \tau  (Pa)');
+ylabel(ax_cdf, 'Cumulative probability');
 ylim(ax_cdf, [0 1]);
-title(ax_cdf, 'CDF of Shear Stress at Proximate Biomass', ...
-    'FontSize', 13, 'FontWeight', 'bold');
+title(ax_cdf, 'CDF of Shear Stress at Proximate Biomass', 'FontWeight', 'bold');
 
-% ---- 1st / 99th percentile markers (dashed vertical lines, per type) ----
+set(ax_cdf, 'FontSize', 13.2, 'FontWeight', 'bold', 'XMinorTick', 'on');
+
+% ---- 1st / 99th percentile markers (per type, same line style as that
+%      type's own data curve, so the marker reads as "belonging" to it) ----
 yl_cdf = ylim(ax_cdf);
 for k = 1:numel(types_present)
     tp = types_present{k};
-    plot(ax_cdf, [pct_lo.(tp) pct_lo.(tp)], yl_cdf, ':', ...
+    plot(ax_cdf, [pct_lo.(tp) pct_lo.(tp)], yl_cdf, lsc(tp), ...
         'Color', clr(tp), 'LineWidth', 1.3, 'HandleVisibility', 'off');
-    plot(ax_cdf, [pct_hi.(tp) pct_hi.(tp)], yl_cdf, ':', ...
+    plot(ax_cdf, [pct_hi.(tp) pct_hi.(tp)], yl_cdf, lsc(tp), ...
         'Color', clr(tp), 'LineWidth', 1.3, 'HandleVisibility', 'off');
 end
+
 ylim(ax_cdf, yl_cdf);
 
-legend(ax_cdf, h_cdf, lbl_cdf, 'Location','best','FontSize',10,'Interpreter','none');
+legend(ax_cdf, h_cdf, lbl_cdf, 'Location','best','FontSize',14,'Interpreter','none');
+xl = xlim(ax_cdf);
+exp_lo = floor(log10(xl(1)));
+exp_hi = ceil(log10(xl(2)));
+set(ax_cdf, 'XTick', 100.^(exp_lo:exp_hi), 'XMinorGrid', 'off');
 grid(ax_cdf,'on'); box(ax_cdf,'off'); hold(ax_cdf,'off');
 
 fpath_cdf = fullfile(folder_plots, 'cdf_shear_proximate_across_types.png');
@@ -451,10 +478,46 @@ function out = load_first_var(filepath)
     S = load(filepath); f = fieldnames(S); out = S.(f{1});
 end
 
-function save_png(fig, fpath, dpi)
-    print(fig, fpath, '-dpng', sprintf('-r%d', dpi));
-end
+% ----------------------------------------------------------------
+%  Save figure as PNG (raster, for quick viewing) AND, optionally,
+%  as a vector PDF (for the actual PNAS submission — vector output
+%  avoids resampling artifacts at print resolution). Passing []
+%  for width_cm/height_cm (as done above) leaves the figure's
+%  current on-screen size untouched.
+% ----------------------------------------------------------------
+function save_png(fig, fpath_noext, dpi, width_cm, height_cm, save_pdf)
+    if nargin < 4, width_cm = []; end
+    if nargin < 5, height_cm = []; end
+    if nargin < 6, save_pdf = false; end
 
+    if ~isempty(width_cm) && ~isempty(height_cm)
+        set(fig, 'Units', 'centimeters', ...
+            'Position', [0 0 width_cm height_cm], ...
+            'PaperUnits', 'centimeters', ...
+            'PaperPosition', [0 0 width_cm height_cm], ...
+            'PaperSize', [width_cm height_cm]);
+    end
+
+    print(fig, [fpath_noext '.png'], '-dpng', sprintf('-r%d', dpi));
+
+    if save_pdf
+        print(fig, [fpath_noext '.pdf'], '-dpdf', '-vector');
+    end
+end
+% ----------------------------------------------------------------
+%  Apply consistent PNAS-style formatting to any axes: Helvetica
+%  font, outward ticks, thin neutral-gray spines, no box, no grid.
+%  Call once per axes (main axes AND each inset) right before saving
+%  the figure, so every panel in every output figure looks uniform.
+% ----------------------------------------------------------------
+function style_pnas_axes(ax, font, fsize, axlinewidth)
+    set(ax, 'FontName', font, 'FontSize', fsize, ...
+        'TickDir', 'out', 'LineWidth', axlinewidth, ...
+        'Box', 'off', 'Layer', 'top');
+    ax.XAxis.Color = [0.15 0.15 0.15];
+    ax.YAxis.Color = [0.15 0.15 0.15];
+    grid(ax, 'off');
+end
 % ----------------------------------------------------------------
 %  Empirical PDF via normalised histogram (same method as original)
 %
