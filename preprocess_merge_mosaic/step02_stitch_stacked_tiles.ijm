@@ -1,6 +1,8 @@
 // stitch_stacked_tiles.ijm
-// Stitches stacked tiles (slice 1 = ch00, slice 2 = ch01) with
-// Grid/Collection stitching: Grid: snake by rows, Right & Down.
+// Stitches stacked tiles (slice 1 = ch00, slice 2 = ch01, slice 3 = ch02, ...)
+// with Grid/Collection stitching: Grid: snake by rows, Right & Down.
+// Works for any number of channels: all slices of a tile are stitched
+// together with the same tile positions, and slice c is saved as ch(c-1).
 //
 // Expected file names: a tile tag "s##" and an optional time tag "t###",
 // each preceded by "_", " " or "-", for example:
@@ -11,7 +13,7 @@
 // (normally 0) for each group without user input.
 //
 // Output (subfolder "Stitched"):
-//     Experiment_t000_ch00.tif, Experiment_t000_ch01.tif,
+//     Experiment_t000_ch00.tif, Experiment_t000_ch01.tif, Experiment_t000_ch02.tif,
 //     Experiment_t001_ch00.tif, ...
 // The original t and s tags are removed, and time points are renumbered
 // in order starting from t000.

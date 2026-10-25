@@ -1,10 +1,10 @@
 # Merge Mosaic (Tile Stitching)
 
-These two Fiji macros rebuild full-chip mosaic images from the individual tiles of a Leica tile scan. Step 1 stacks the two channels of each tile, and Step 2 stitches the stacked tiles of each time point into one image per channel.
+These two Fiji macros rebuild full-chip mosaic images from the individual tiles of a Leica tile scan. Step 1 stacks all channels of each tile (two, three or more), and Step 2 stitches the stacked tiles of each time point into one image per channel.
 
 | Step | Macro | Input | Output |
 |------|-------|-------|--------|
-| 1 | `step01_stack_channels.ijm` | Exported tiles, one TIFF per channel (`ch00`, `ch01`) | One 2-slice stack per tile, in `Stacked_Tiles/` |
+| 1 | `step01_stack_channels.ijm` | Exported tiles, one TIFF per channel (`ch00`, `ch01`, `ch02`, …) | One stack per tile (one slice per channel), in `Stacked_Tiles/` |
 | 2 | `step02_stitch_stacked_tiles.ijm` | `Stacked_Tiles/` | One stitched TIFF per channel and time point, in `Stacked_Tiles/Stitched/` |
 
 ---
@@ -30,10 +30,12 @@ The exported files should look like this:
 ```
 TileScan 1_t00_s00_ch00.tif
 TileScan 1_t00_s00_ch01.tif
+TileScan 1_t00_s00_ch02.tif
 TileScan 1_t00_s01_ch00.tif
 TileScan 1_t00_s01_ch01.tif
+TileScan 1_t00_s01_ch02.tif
 ...
-TileScan 1_t05_s08_ch01.tif
+TileScan 1_t05_s08_ch02.tif
 ```
 
 Here `t##` is the time point, `s##` is the tile (position) index starting at 0, and `ch##` is the channel. Both macros rely on these tags, so do not rename the files. The tags must be separated from the rest of the name by `_`, a space, or `-`.
@@ -47,7 +49,7 @@ Here `t##` is the time point, `s##` is the tile (position) index starting at 0, 
 1. In Fiji, open the macro with *Plugins › Macros › Run…* (or drag it onto the Fiji bar and click **Run**).
 2. Choose the folder with the exported tiles.
 
-For every `*ch00*.tif`, the macro finds the matching `*ch01*.tif`, stacks them (slice 1 = `ch00`, slice 2 = `ch01`) and saves the stack in a `Stacked_Tiles` subfolder. Each stack takes the tile name without the channel tag:
+For every `*ch00*.tif`, the macro finds the matching `ch01`, `ch02`, … files (same name, only the channel number changes), stacks them in channel order (slice 1 = `ch00`, slice 2 = `ch01`, slice 3 = `ch02`, …) and saves the stack in a `Stacked_Tiles` subfolder. Each stack takes the tile name without the channel tag:
 
 ```
 Stacked_Tiles/
@@ -59,9 +61,11 @@ Stacked_Tiles/
 **Settings** (top of the macro):
 
 - `outFolderName`: name of the output subfolder (default `Stacked_Tiles`).
-- `convertTo8bit`: set to `true` if the two channels differ in bit depth or type (for example, one RGB and one 8-bit). *Concatenate* fails when the two images differ.
+- `nChannels`: number of channels per tile. With `0` (default), the macro counts the channels of the first tile (`ch00`, `ch01`, … up to the first missing one) and expects the same count for every other tile. Set it to `2`, `3`, … to require exactly that many.
+- `maxChannels`: upper limit for the automatic count (default `10`).
+- `convertTo8bit`: set to `true` if the channels differ in bit depth or type (for example, one RGB and two 8-bit). *Concatenate* fails when the images differ.
 
-A `ch00` file without a `ch01` partner is skipped and listed in the Log window.
+Every tile must end up with the same number of slices, because Step 2 stitches all slices of a tile together. A tile with a missing channel, or with more channels than the first tile, is skipped and listed in the Log window.
 
 ---
 
@@ -83,14 +87,16 @@ The macro groups the files by time point and stitches each group with *Grid/Coll
 - **Start index:** the lowest `s` number in the group (normally 0)
 - **All other options:** plugin defaults (Linear Blending, regression threshold 0.30, max/avg displacement 2.50, absolute displacement 3.50, compute overlap on)
 
-After each stitch, the macro runs *Stack to Images* and saves each channel separately in `Stitched/`. It removes the original `t` and `s` tags and numbers the time points again from `t000`:
+All slices of a tile are placed with the same tile positions, so the channels stay aligned with each other. After each stitch, the macro runs *Stack to Images* and saves each channel separately in `Stitched/`. It removes the original `t` and `s` tags and numbers the time points again from `t000`:
 
 ```
 Stacked_Tiles/Stitched/
 ├── TileScan 1_t000_ch00.tif
 ├── TileScan 1_t000_ch01.tif
+├── TileScan 1_t000_ch02.tif
 ├── TileScan 1_t001_ch00.tif
 ├── TileScan 1_t001_ch01.tif
+├── TileScan 1_t001_ch02.tif
 └── ...
 ```
 
@@ -100,6 +106,6 @@ A time point with fewer or more than n × m tiles is skipped and listed in the L
 
 ## Troubleshooting
 
-- **"Right & Down" is not recognized.** The plugin stores this option with trailing spaces, and the macro copies them. If your Fiji version names it differently, record one stitching run with *Plugins › Macros › Record…* and paste the recorded `order=[...]` text into line 113 of `step02_stitch_stacked_tiles.ijm`.
+- **"Right & Down" is not recognized.** The plugin stores this option with trailing spaces, and the macro copies them. If your Fiji version names it differently, record one stitching run with *Plugins › Macros › Record…* and paste the recorded `order=[...]` text into line 115 of `step02_stitch_stacked_tiles.ijm`.
 - **The mosaic looks scrambled.** The tile order in LAS X did not match *snake by rows, Right & Down*. Check the scan direction in the LAS X tile-scan settings and change `type=` and `order=` in the macro to match.
 - **No tiles found.** Check that the file names still carry the `_s##` tag (and `_t##` for time series) after export.
