@@ -148,8 +148,30 @@ end
 
 cd(funcPath);
 
+% FIX: compute the canvas ONCE, before the loop. Fiji stacked (and SIFT
+% aligned) the brightfield images on this padded canvas, so every Fiji
+% matrix is in padded-canvas pixel coordinates.
+allH = zeros(nImgs,1); allW = zeros(nImgs,1);
+for k = 1:nImgs
+    info = imfinfo(fullfile(tifRawImagesPath, imgNames{k}));
+    allH(k) = info.Height; allW(k) = info.Width;
+end
+canvasH = max(allH); canvasW = max(allW);
+
+% FIX: cpselect picked the points on the UNPADDED first image, so tform0
+% maps unpadded img0 coordinates to the mask. The loop below pads every
+% image (including the first) before imwarp, which moves the first image
+% by (xoff0, yoff0). Undo that shift before tform0 is applied:
+%   [x_padded y_padded 1] * Tpad = [x_unpadded y_unpadded 1]
+xoff0 = floor((canvasW - allW(1)) / 2);   % same offsets as padToCanvasCenter
+yoff0 = floor((canvasH - allH(1)) / 2);
+Tpad  = [1 0 0; 0 1 0; -xoff0 -yoff0 1];
+tform0_canvas = affine2d(Tpad * tform0.T);
+fprintf('Canvas %d x %d px; first image padded by x = %d, y = %d px\n', ...
+        canvasW, canvasH, xoff0, yoff0);
+
 % Extract all transform matrices from logs folder
-tforms = readAffineTransforms(tform0, logsPath);
+tforms = readAffineTransforms(tform0_canvas, logsPath);   % FIX: was tform0
 
 % T=0 reference image placeholder (captured on first iteration)
 REF_IMG_RGB = [];
@@ -193,14 +215,9 @@ for i = 1:nImgs_loop
                 end
         end
 
-        % Determine canvas size the same way ImageJ did. Correct for the
-        % offset. max width and max height across the WHOLE set Fiji stacked (per channel).
-        allH = zeros(nImgs,1); allW = zeros(nImgs,1);
-        for k = 1:nImgs
-            info = imfinfo(fullfile(tifRawImagesPath, imgNames{k}));
-            allH(k) = info.Height; allW(k) = info.Width;
-        end
-        canvasH = max(allH); canvasW = max(allW);
+        % FIX: canvasH and canvasW are now computed once, before the loop
+        % (this block re-read the headers of all images for every image
+        % and channel, i.e. 2 x 200 x 200 imfinfo calls).
 
         % Reference and transform
         img = im2uint16(img);   % <-- promote 8-bit to 16-bit, same scaling as img0
