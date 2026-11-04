@@ -31,13 +31,17 @@ clear; clc; close all;
 % using the same file-naming strategy as pq_cleaning.m. No need to set it here.
 
 % --- Event lines ---
-eventTimes  = [];          % <-- edit: e.g. [24, 48, 72]
-eventLabels = {};          % <-- edit: e.g. {'PSS onset', 'Sloughing', 'Re-clogging'}
-eventColor  = [0.0 0.0 0.0];   % dark charcoal
+eventTimes  = [6.1,20.2,37.3,70.4,112.7];          % <-- edit: e.g. [24, 48, 72]
+eventLabels = {'a', 'b','c','d', 'e'};          % <-- edit: e.g. {'PSS onset', 'Sloughing', 'Re-clogging'}
+eventColor  = [0.85 0.0 0.0];   % dark charcoal (label text)
 eventLW     = 1;
+% FIX: short red tick marks at the top spine replace full-height dashed lines
+eventTickColor = [0.85 0.0 0.0];   % red tick under each label
+eventTickLW    = 3;              % tick line width (pt)
+eventTickLen   = 0.1;             % tick length as fraction of panel height
 
 % --- Data truncation ---
-t_DO_end_h = 35.5;         % DO truncation
+t_DO_end_h = inf;         % DO truncation
 t_bio_end_h = inf;        % Biomass truncation
 
 % --- DO physical scale for right-axis normalisation ---
@@ -324,11 +328,13 @@ ax.FontWeight = 'bold';
 %% =========================================================
 %  VERTICAL EVENT LINES
 %% =========================================================
-for ev = 1:length(eventTimes)
-    h1 = xline(ax, eventTimes(ev), '--', ...
-        'Color', eventColor, 'LineWidth', eventLW, 'Alpha', 0.75);
-    h1.Annotation.LegendInformation.IconDisplayStyle = 'off';
-end
+% FIX: full-height dashed xline() removed; short red ticks are drawn
+% in the event-label overlay axis below (see "OVERLAY AXIS FOR EVENT LABELS").
+% for ev = 1:length(eventTimes)
+%     h1 = xline(ax, eventTimes(ev), '--', ...
+%         'Color', eventColor, 'LineWidth', eventLW, 'Alpha', 0.75);
+%     h1.Annotation.LegendInformation.IconDisplayStyle = 'off';
+% end
  
 % Force layout so positions are finalised
 drawnow;
@@ -387,7 +393,17 @@ axEvt = axes('Units',            'normalized', ...
              'HitTest',          'off', ...
              'HandleVisibility', 'off');
  
+yTop = axEvt.YLim(2);   % top spine of the panel in overlay-axis units
 for ev = 1:length(eventTimes)
+    % FIX: short red tick hanging down from the top spine under each label
+    line(axEvt, [eventTimes(ev) eventTimes(ev)], ...
+        [yTop - eventTickLen*diff(axEvt.YLim), yTop], ...
+        'Color',     eventTickColor, ...
+        'LineWidth', eventTickLW, ...
+        'LineStyle', '-', ...
+        'Clipping',  'off', ...
+        'HitTest',   'off');
+
     text(axEvt, eventTimes(ev), 1, eventLabels{ev}, ...
         'Units',               'data', ...
         'Color',               eventColor, ...
