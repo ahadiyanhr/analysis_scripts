@@ -308,7 +308,10 @@ ylabel(ax, '');                    % suppress default ylabel text
 xMax_h = max([hours_q(:); hours_p(:); hours_img(:)]);
 xlim(ax, [0  xMax_h]);
 xTicks = ax.XTick;
-ax.XTick = xTicks(2:end-1);   % drop first and last auto tick
+% FIX: drop only ticks that sit ON the axis limits (0 and xMax_h).
+% The old xTicks(2:end-1) always removed the last tick, even when it was
+% interior (e.g. 100 h on a 0–114 h axis), so labels stopped at 80 h.
+ax.XTick = xTicks(xTicks > 0 & xTicks < xMax_h);
 xlabel(ax, 'Experiment time (h)', 'FontSize', 10, 'FontWeight', 'bold');
  
 %% =========================================================
