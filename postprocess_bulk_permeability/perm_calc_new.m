@@ -32,13 +32,18 @@ ROOT_PATH = pwd;
 
 SMOOTH_WINDOW = 2000;          % movmean window [samples] (1 Hz → ~33 min)
 
+% FIX: minimum ΔP (after offset) treated as measurable. Below this, k is
+% set to NaN, so noise near ΔP ≈ 0 cannot become the "peak".
+% Sensor step ~0.1 mbar, noise ~0.17 mbar → 1 mbar ≈ 6× the noise.
+DP_MIN_MBAR = 0.1;
+
 % FIX: the peak (starting point) is searched only in this early window,
 % so a late spike (e.g. after sloughing) cannot become the start point.
 PEAK_SEARCH_H = 12;            % [h] from the start of each experiment
 
 % FIX: false → x-axis is experiment time (matches the other manuscript
 % panels); true → each curve is re-zeroed at its own peak.
-ZERO_AT_PEAK = false;
+ZERO_AT_PEAK = true;
 
 % Reduction reference line (k/k_peak = 1/N). Set to [] to hide it.
 REDUCTION_FACTOR = 10;
@@ -269,8 +274,10 @@ for c = 1:numel(expList)
     dP_Pa = deltaP_smooth * MBAR_TO_PA;               % Pa
     k     = (q_m3s * MU * L) ./ (A * dP_Pa);          % m²
 
-    k(abs(dP_Pa) < 1e-3) = NaN;   % guard against near-zero pressure
-    k(k <= 0)            = NaN;
+    % FIX: the old guard (1e-3 Pa = 1e-5 mbar) sat far below the sensor's
+    % resolution and let near-zero ΔP produce huge, fake k values.
+    k(deltaP_smooth < DP_MIN_MBAR) = NaN;
+    k(k <= 0)                      = NaN;
 
     t_hours = hours(dt_aligned - t0_experiment);
 
@@ -281,12 +288,16 @@ for c = 1:numel(expList)
     inWin = t_hours <= t_hours(1) + PEAK_SEARCH_H;
     kWin  = k;
     kWin(~inWin) = NaN;
+    % FIX: duplicate max() block removed (it ran the same search twice)
     [k_peak, idx_peak] = max(kWin, [], 'omitnan');
     if isnan(k_peak)
         error('No valid permeability in the first %.1f h for:\n%s', PEAK_SEARCH_H, folder);
     end
 
-    t_peak  = t_hours(idx_peak);
+    t_peak = t_hours(idx_peak);   % experiment time (h) of the peak
+
+    % FIX: DROP all data before the peak (no more "hold at 1"), then shift
+    % time so the peak sits at t = 0 h. Every curve starts at (0, 1).
     t_hours = t_hours(idx_peak:end);
     k       = k(idx_peak:end);
     k_norm  = k / k_peak;
@@ -307,7 +318,8 @@ for c = 1:numel(expList)
     results(c).t_peak  = t_peak;   % experiment time (h) of the peak
     results(c).t_last  = t_hours(lastValid);
 
-    fprintf('   Peak at t = %.2f h  |  k_peak = %.2e m²  |  run ends at %.2f h (plot time)\n', ...
+    % FIX: t_peak is in experiment time; t_last is in plot time (since peak)
+    fprintf('   Peak at t = %.2f h (experiment time)  |  k_peak = %.2e m²  |  run ends at %.2f h (plot time)\n', ...
         t_peak, k_peak, results(c).t_last);
 end
 
@@ -324,6 +336,8 @@ for c = 1:numel(results)
     results(c).k_norm  = results(c).k_norm(m);
 end
 
+% FIX: with ZERO_AT_PEAK, every curve starts at its own peak (t = 0 h);
+% otherwise the axis opens at the earliest peak in experiment time.
 if ZERO_AT_PEAK
     t_start = 0;
 else
@@ -396,7 +410,7 @@ xlim(ax, [t_start  t_end]);
 xTicks   = ax.XTick;
 ax.XTick = xTicks(xTicks > t_start & xTicks < t_end);
 if ZERO_AT_PEAK
-    xlabel(ax, 'Time since peak permeability (h)', 'FontSize', 10, 'FontWeight', 'bold');
+    xlabel(ax, 'Experiment time (h)', 'FontSize', 10, 'FontWeight', 'bold');
 else
     xlabel(ax, 'Experiment time (h)', 'FontSize', 10, 'FontWeight', 'bold');
 end
