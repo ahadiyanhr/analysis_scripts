@@ -47,6 +47,20 @@ t_bio_end_h = inf;        % Biomass truncation
 % --- DO physical scale for right-axis normalisation ---
 DO_MAX_MGPL = 8;         % 100 % on the right axis = this many mg/L
 
+% --- FIX: new t = 0 at peak bulk permeability (same rule as perm_calc_new.m) ---
+% k is computed under the hood only to locate its early peak; it is NOT
+% plotted. All data before the peak are removed and every time series is
+% shifted left so the peak falls on t = 0 h.
+SHIFT_TO_PEAK   = true;    % false → original experiment time (old behavior)
+K_SMOOTH_WINDOW = 2000;    % [samples] movmean for k (as in perm_calc_new.m)
+DP_MIN_MBAR     = 1;       % ΔP below this (after offset) → k = NaN (sensor noise)
+PEAK_SEARCH_H   = 12;      % [h] peak searched only in the first PEAK_SEARCH_H h
+
+% FIX: true → eventTimes, t_DO_end_h and t_bio_end_h above are entered in
+% ORIGINAL experiment time and get shifted by t_peak automatically.
+% false → you entered them already in the shifted (peak = 0) time.
+USER_TIMES_IN_EXPERIMENT_TIME = true;
+
 % --- Axis-side assignment ---
 % Hydraulic parameter (flowrate for cP, ΔP for cQ) always on LEFT,
 % biomass/DO always on RIGHT, so both experiment types share the same layout.
@@ -163,7 +177,65 @@ t0        = min([t_q; t_p; t_img]);
 hours_q   = hours(t_q   - t0);
 hours_p   = hours(t_p   - t0);
 hours_img = hours(t_img - t0);
- 
+
+%% =========================================================
+%  FIX: PEAK BULK PERMEABILITY → NEW t = 0
+%  Darcy: k = Q*mu*L/(A*dP). mu, L, A are constant, so k ∝ Q/dP and the
+%  peak location does not need the geometry. k is never plotted.
+%% =========================================================
+t_peak_h = 0;
+if SHIFT_TO_PEAK
+    [t_k, iq, ip] = intersect(t_q, t_p);
+    q_k   = movmean(q_smooth(iq),  K_SMOOTH_WINDOW);
+    dp_k  = movmean(dp_smooth(ip), K_SMOOTH_WINDOW);
+    k_rel = q_k ./ dp_k;                              % ∝ k  [arbitrary units]
+    k_rel(dp_k < DP_MIN_MBAR | k_rel <= 0) = NaN;     % unmeasurable ΔP / noise
+
+    h_k = hours(t_k - t0);
+    k_rel(h_k > h_k(1) + PEAK_SEARCH_H) = NaN;        % early peak only
+
+    [k_max, iPeak] = max(k_rel, [], 'omitnan');
+    if isnan(k_max)
+        error(['No measurable permeability (ΔP > %.2f mbar) in the first %.1f h.\n' ...
+               'Lower DP_MIN_MBAR or raise PEAK_SEARCH_H.'], DP_MIN_MBAR, PEAK_SEARCH_H);
+    end
+    t_peak_h = h_k(iPeak);
+    fprintf('Peak permeability at %.2f h (experiment time) → new t = 0 h\n', t_peak_h);
+
+    % Shift every time axis left, then drop everything before the peak
+    hours_q   = hours_q   - t_peak_h;
+    hours_p   = hours_p   - t_peak_h;
+    hours_img = hours_img - t_peak_h;
+
+    keep_q = hours_q >= 0;
+    hours_q  = hours_q(keep_q);   q_smooth  = q_smooth(keep_q);
+    keep_p = hours_p >= 0;
+    hours_p  = hours_p(keep_p);   dp_smooth = dp_smooth(keep_p);
+
+    keep_img = hours_img >= 0;
+    hours_img       = hours_img(keep_img);
+    biomass_occ     = biomass_occ(keep_img);
+    biomass_occ_std = biomass_occ_std(keep_img);
+    if hasDO
+        bulk_DO     = bulk_DO(keep_img);
+        bulk_DO_std = bulk_DO_std(keep_img);
+    end
+
+    % Shift user-entered times (events, truncations) the same way
+    if USER_TIMES_IN_EXPERIMENT_TIME
+        eventTimes  = eventTimes  - t_peak_h;
+        t_DO_end_h  = t_DO_end_h  - t_peak_h;   % inf stays inf
+        t_bio_end_h = t_bio_end_h - t_peak_h;
+    end
+    dropEv = eventTimes < 0;
+    if any(dropEv)
+        fprintf('⚠  Event(s) %s fall before the peak and are not drawn.\n', ...
+            strjoin(eventLabels(dropEv), ', '));
+    end
+    eventTimes  = eventTimes(~dropEv);
+    eventLabels = eventLabels(~dropEv);
+end
+
 %% =========================================================
 %  DO RESCALING  (mg/L → %)
 %% =========================================================
@@ -195,6 +267,8 @@ repData.expLabel     = expLabel;
 repData.exp_type     = exp_type;
 repData.flag_cP      = flag_cP;
 repData.DO_MAX_MGPL  = DO_MAX_MGPL;
+repData.t_peak_h     = t_peak_h;        % FIX: shift applied (h, experiment time)
+repData.shiftedToPeak = SHIFT_TO_PEAK;  % FIX: all hours_* below are peak-shifted
 
 repData.hours_q   = hours_q;
 repData.q_smooth  = q_smooth;
