@@ -199,6 +199,34 @@ MainFolderProject/
   processed_data/biomass_occupation_bulkDO/
   ```
 
+### **Hydraulic Data at Selected Images**
+- Reports ΔP and flowrate at the images you choose, printed as a table in the MATLAB Command Window.
+- Requires the outputs of `pq_cleaning.m` and the imaging timestamp log:
+  ```
+  processed_data/pq_cleaned_data/cleaned_flowrate.csv
+  processed_data/pq_cleaned_data/cleaned_pressures.csv
+  logs/imaging_timestamp.xlsx
+  ```
+- Open and run in MATLAB (from the `analysis_scripts` folder):
+  ```
+  hydraulics_at_images.m
+  ```
+- Enter the image numbers when asked, e.g. `[0 10 25 40]`. Image `#00` is the first row of `imaging_timestamp.xlsx`, the same numbering as the image axis in `plot_for_manuscripts_3panels.m`.
+- For each image, the script finds the sensor sample closest to the image time and averages **15 samples before and 15 samples after** it (31 samples, about ±15 s at 1 Hz). It reports mean ± std for ΔP (mbar) and flowrate (µL/min), the image timestamp, the experiment time (h, from the earliest timestamp), and the number of samples used:
+  ```
+  Image   Timestamp              Time (h)   ΔP (mbar)              Flowrate (µL/min)         n
+  #10     2026-10-17 08:02:11       10.83      0.412 ± 0.158          1.791 ± 0.012          31
+  ```
+- Settings at the top of the script:
+  - `IMAGE_NUMBERS`: set e.g. `[0 10 25]` to skip the prompt; leave `[]` to be asked.
+  - `N_AVG`: number of samples averaged before and after each image (default 15).
+  - `MAX_GAP_S`: warns if the closest sensor sample is farther than this from the image (default 5 s).
+> *Note:* The script averages the unsmoothed `q` and `dP` columns (offsets already removed by `pq_cleaning.m`), so the ±15-sample window is the only smoothing applied.
+
+> *Note:* A ⚠ line under a row means the image falls in a sensor logging gap or near the start/end of the log, so fewer samples were averaged. The script also warns if `imaging_timestamp.xlsx` is out of order; fix the timestamps before using the values.
+
+> *Note:* At low flowrates, ΔP is close to the sensor noise (~0.17 mbar), so report the ± value with the mean.
+
 ### **Biomass Density Overlay (not up to date code)**
 - Open and run in MATLAB:
   ```
