@@ -18,6 +18,22 @@ eventColor  = [0.0 0.0 0.0];   % dark charcoal
 eventLW     = 1;
 
 %% -------------------------------------------------
+% FIX: GUIDE LINES (diagnostic, not shifted)
+% This figure keeps ORIGINAL experiment time. It marks where the
+% manuscript figures start (peak bulk permeability = their t = 0) and
+% where each image was taken, as in plot_for_manuscripts_3panels.m.
+%% -------------------------------------------------
+SHOW_PEAK_LINE  = true;
+K_SMOOTH_WINDOW = 2000;    % same as plot_for_manuscripts_1panels.m
+DP_MIN_MBAR     = 0.1;     % same as plot_for_manuscripts_1panels.m
+PEAK_SEARCH_H   = 12;      % same as plot_for_manuscripts_1panels.m
+peakColor       = [0.85 0.10 0.10];   % red
+
+SHOW_IMAGE_LINES = true;
+imgStep          = 10;     % line + label every imgStep images (#00, #10, ...)
+imgLineColor     = [0.6 0.6 0.6];
+
+%% -------------------------------------------------
 % Paths  (unchanged from original)
 %% -------------------------------------------------
 mainPath    = pwd;
@@ -101,6 +117,38 @@ t0        = min([t_q; t_p; t_img]);
 hours_q   = hours(t_q   - t0);
 hours_p   = hours(t_p   - t0);
 hours_img = hours(t_img - t0);
+
+%% -------------------------------------------------
+% FIX: peak bulk permeability (same rule as plot_for_manuscripts_1panels.m)
+% k ∝ Q/ΔP (μ, L, A constant). Only its early peak time is used.
+%% -------------------------------------------------
+t_peak_h = NaN;
+if SHOW_PEAK_LINE
+    [t_k, iq, ip] = intersect(t_q, t_p);
+    q_k   = movmean(q_smooth(iq),  K_SMOOTH_WINDOW);
+    dp_k  = movmean(dp_smooth(ip), K_SMOOTH_WINDOW);
+    k_rel = q_k ./ dp_k;
+    k_rel(dp_k < DP_MIN_MBAR | k_rel <= 0) = NaN;     % includes negative ΔP
+
+    h_k = hours(t_k - t0);
+    k_rel(h_k > h_k(1) + PEAK_SEARCH_H) = NaN;        % early peak only
+
+    [k_max, iPeak] = max(k_rel, [], 'omitnan');
+    if isnan(k_max)
+        warning('No measurable permeability (ΔP > %.2f mbar) in the first %.1f h; peak line skipped.', ...
+            DP_MIN_MBAR, PEAK_SEARCH_H);
+    else
+        t_peak_h = h_k(iPeak);
+        fprintf('Peak permeability at %.2f h (experiment time, %s)\n', ...
+            t_peak_h, string(t_k(iPeak)));
+    end
+end
+
+%% -------------------------------------------------
+% FIX: image-number lines (as in plot_for_manuscripts_3panels.m)
+%% -------------------------------------------------
+idxImg    = 1:imgStep:length(hours_img);
+imgLabels = arrayfun(@(k) sprintf('#%02d', k-1), idxImg, 'UniformOutput', false);
 
 %% -------------------------------------------------
 % Colors  (variable-based, colorblind-accessible)
@@ -256,8 +304,62 @@ for ev = 1:length(eventTimes)
     h2.Annotation.LegendInformation.IconDisplayStyle = 'off';
 end
 
+% FIX: image-number lines on both panels (dotted gray, as in the 3-panel plot)
+if SHOW_IMAGE_LINES
+    for i = idxImg
+        hi1 = xline(axTop, hours_img(i), ':', 'Color', imgLineColor, 'LineWidth', 1.5);
+        hi1.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hi2 = xline(axBot, hours_img(i), ':', 'Color', imgLineColor, 'LineWidth', 1.5);
+        hi2.Annotation.LegendInformation.IconDisplayStyle = 'off';
+    end
+end
+
+% FIX: peak-permeability line = t = 0 of the manuscript figures.
+% Data left of this line are removed in plot_for_manuscripts_1panels.m.
+if ~isnan(t_peak_h)
+    hp1 = xline(axTop, t_peak_h, '-', 'k/k_{peak} = 1', ...
+        'Color', peakColor, 'LineWidth', 1.5, ...
+        'LabelVerticalAlignment', 'bottom', ...
+        'LabelHorizontalAlignment', 'right', ...
+        'FontSize', 8, 'FontWeight', 'bold');
+    hp1.Annotation.LegendInformation.IconDisplayStyle = 'off';
+    hp2 = xline(axBot, t_peak_h, '-', ...
+        'Color', peakColor, 'LineWidth', 1.5);
+    hp2.Annotation.LegendInformation.IconDisplayStyle = 'off';
+end
+
 % Force layout so axTop.Position is finalised before we read it
 drawnow;
+
+%% -------------------------------------------------
+% FIX: image numbers along the TOP edge of the top panel
+% (3-panel plot puts them on an overlay axis; here the top edge is used
+% so they do not collide with the hidden x tick labels of axTop)
+%% -------------------------------------------------
+if SHOW_IMAGE_LINES
+    axImg = axes('Units',            'normalized', ...
+                 'Position',         axTop.Position, ...
+                 'Color',            'none', ...
+                 'XAxisLocation',    'top', ...
+                 'YColor',           'none', ...
+                 'XColor',           [0.35 0.35 0.35], ...
+                 'XLim',             axTop.XLim, ...
+                 'XTick',            hours_img(idxImg), ...
+                 'XTickLabel',       imgLabels, ...
+                 'TickLength',       [0.004 0.004], ...
+                 'FontSize',         7, ...
+                 'Box',              'off', ...
+                 'HitTest',          'off', ...
+                 'HandleVisibility', 'off');
+    xlabel(axImg, 'Image number', 'FontSize', 8);
+
+    lImgPos = addlistener(axTop, 'Position', 'PostSet', ...
+        @(~,~) set(axImg, 'Position', axTop.Position, 'XLim', axTop.XLim));
+    lImgLim = addlistener(axTop, 'XLim', 'PostSet', ...
+        @(~,~) set(axImg, 'XLim', axTop.XLim));
+    setappdata(fig, 'ListenerImgPos', lImgPos);
+    setappdata(fig, 'ListenerImgLim', lImgLim);
+end
 
 %% -------------------------------------------------
 % Overlay axis above top panel for event labels
