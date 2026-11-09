@@ -16,10 +16,14 @@
 %         *__ob1_pressures / *__reader_pressures  .txt  -> pressure
 %         *__ob1_flowrate  / *__reader_flowrate   .txt  -> flowrate
 %         *offset*.xlsx                                 -> sensor offsets
+%                                                          + clean-zone size
 %    3. Starting point of each curve = highest k in the early part of the
 %       run (first PEAK_SEARCH_H hours). k is normalized by that value, so
 %       every curve starts at k/k_peak = 1.
-%    4. All curves end when the FIRST experiment ends.
+%    4. FIX: if CORRECT_CLEAN_ZONE = true, k/k_peak is converted to the
+%       permeability of the COLONIZED zone only (clean inlet zone removed,
+%       series resistances):  k_zone/k0 = f2 / (k0/k_bulk - f1)
+%    5. All curves end when the FIRST experiment ends.
 %
 %  Style follows plot_for_manuscripts_1panels.m (8" x 2.5", bold 9-pt axes,
 %  10-pt bold labels, light grid, box on, PDF vector + TIF 300 dpi).
@@ -44,6 +48,13 @@ PEAK_SEARCH_H = 12;            % [h] from the start of each experiment
 % FIX: false → x-axis is experiment time (matches the other manuscript
 % panels); true → each curve is re-zeroed at its own peak.
 ZERO_AT_PEAK = true;
+
+% FIX: clean-zone correction. Add ONE of these columns to each
+% experiment's offset Excel file (first row is used):
+%   clean_fraction   → f1 = clean (biofilm-free) length / reactor length, 0–1
+%   clean_length_mm  → clean length in mm (converted with L below)
+% Missing column or empty cell → f1 = 0 (fully colonized, no correction).
+CORRECT_CLEAN_ZONE = true;
 
 % Reduction reference line (k/k_peak = 1/N). Set to [] to hide it.
 REDUCTION_FACTOR = 10;
@@ -163,6 +174,19 @@ for c = 1:numel(expList)
     end
     flowrate_offset      = T_offset.flowrate(1);
     pressure_diff_offset = T_offset.pressure_diff(1);
+
+    % FIX: clean-zone fraction f1 from the same offset file
+    vars = T_offset.Properties.VariableNames;
+    f1   = 0;
+    if ismember('clean_fraction', vars) && ~isnan(T_offset.clean_fraction(1))
+        f1 = T_offset.clean_fraction(1);
+    elseif ismember('clean_length_mm', vars) && ~isnan(T_offset.clean_length_mm(1))
+        f1 = (T_offset.clean_length_mm(1) * 1e-3) / L;   % mm → m, then / L
+    end
+    if f1 < 0 || f1 >= 1
+        error('Clean-zone fraction must be in [0, 1); got %.3f in:\n%s', f1, folder);
+    end
+    fprintf('   Clean inlet zone: f1 = %.3f (%.2f mm of %.1f mm)\n', f1, f1*L*1e3, L*1e3);
 
     % ── 2. Detect experiment type from txt filenames (FIX: any depth) ─────
     files         = dir(fullfile(folder, '**', '*.txt'));
@@ -302,6 +326,17 @@ for c = 1:numel(expList)
     k       = k(idx_peak:end);
     k_norm  = k / k_peak;
 
+    % FIX: clean-zone correction (clean zone in series with colonized zone)
+    %   L/k_bulk = L1/k0 + L2/k_zone  →  k_zone/k0 = f2 / (k0/k_bulk - f1)
+    % k0 = k_peak (whole channel clean at the peak), so k0/k_bulk = 1/k_norm.
+    % k_norm = 1 maps to 1, so every curve still starts at (0, 1).
+    k_norm_bulk = k_norm;                    % keep the uncorrected curve
+    if CORRECT_CLEAN_ZONE && f1 > 0
+        denom  = 1 ./ k_norm - f1;
+        k_norm = (1 - f1) ./ denom;
+        k_norm(denom <= 0) = NaN;            % only if k rises far above k_peak
+    end
+
     if ZERO_AT_PEAK
         t_hours = t_hours - t_peak;
     end
@@ -314,7 +349,9 @@ for c = 1:numel(expList)
     results(c).t_hours = t_hours;
     results(c).k       = k;        % raw permeability [m²]
     results(c).k_peak  = k_peak;   % normalization constant [m²]
-    results(c).k_norm  = k_norm;   % dimensionless, k / k_peak
+    results(c).k_norm  = k_norm;   % dimensionless, k / k_peak (corrected if f1 > 0)
+    results(c).k_norm_bulk = k_norm_bulk;   % FIX: uncorrected bulk k / k_peak
+    results(c).f1      = f1;       % FIX: clean-zone fraction used
     results(c).t_peak  = t_peak;   % experiment time (h) of the peak
     results(c).t_last  = t_hours(lastValid);
 
@@ -334,6 +371,7 @@ for c = 1:numel(results)
     results(c).t_hours = results(c).t_hours(m);
     results(c).k       = results(c).k(m);
     results(c).k_norm  = results(c).k_norm(m);
+    results(c).k_norm_bulk = results(c).k_norm_bulk(m);   % FIX
 end
 
 % FIX: with ZERO_AT_PEAK, every curve starts at its own peak (t = 0 h);
@@ -403,7 +441,12 @@ ax.YTickLabel{end} = '1';                               % cleaner than 10^{0}
 ax.TickLabelInterpreter = 'tex';
 ax.YMinorTick = 'on';
 
-ylabel(ax, 'Normalized permeability (k/k_{peak})', 'FontSize', 9, 'FontWeight', 'bold');
+% FIX: label states which permeability is shown
+if CORRECT_CLEAN_ZONE && any([results.f1] > 0)
+    ylabel(ax, 'Normalized permeability (k_{zone}/k_{peak})', 'FontSize', 9, 'FontWeight', 'bold');
+else
+    ylabel(ax, 'Normalized permeability (k/k_{peak})', 'FontSize', 9, 'FontWeight', 'bold');
+end
 
 % X-axis (same tick handling as the 1-panel script)
 xlim(ax, [t_start  t_end]);
@@ -436,8 +479,14 @@ lgd.Box        = 'off';
 fig.Units    = 'inches';
 fig.Position = [1  1  figW_in  figH_in];
 
-pdfOut = fullfile(ROOT_PATH, 'bulk_permeability_normalized_PNAS.pdf');
-tifOut = fullfile(ROOT_PATH, 'bulk_permeability_normalized_PNAS.tif');
+% FIX: separate file names so corrected and bulk figures never overwrite
+if CORRECT_CLEAN_ZONE
+    outName = 'bulk_permeability_normalized_cleanzone_corrected_PNAS';
+else
+    outName = 'bulk_permeability_normalized_PNAS';
+end
+pdfOut = fullfile(ROOT_PATH, [outName '.pdf']);
+tifOut = fullfile(ROOT_PATH, [outName '.tif']);
 
 exportgraphics(fig, pdfOut, 'ContentType', 'vector');
 exportgraphics(fig, tifOut, 'Resolution', 300);
