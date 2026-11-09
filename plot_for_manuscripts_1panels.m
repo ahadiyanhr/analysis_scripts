@@ -31,8 +31,8 @@ clear; clc; close all;
 % using the same file-naming strategy as pq_cleaning.m. No need to set it here.
 
 % --- Event lines ---
-eventTimes  = [6.1,20.2,37.3,70.4,112.7];          % <-- edit: e.g. [24, 48, 72]
-eventLabels = {'a', 'b','c','d', 'e'};          % <-- edit: e.g. {'PSS onset', 'Sloughing', 'Re-clogging'}
+eventTimes  = [];          % <-- edit: e.g. [24, 48, 72]
+eventLabels = {};          % <-- edit: e.g. {'PSS onset', 'Sloughing', 'Re-clogging'}
 eventColor  = [0.85 0.0 0.0];   % dark charcoal (label text)
 eventLW     = 1;
 % FIX: short red tick marks at the top spine replace full-height dashed lines
@@ -41,8 +41,10 @@ eventTickLW    = 3;              % tick line width (pt)
 eventTickLen   = 0.1;             % tick length as fraction of panel height
 
 % --- Data truncation ---
-t_DO_end_h = inf;         % DO truncation
-t_bio_end_h = inf;        % Biomass truncation
+% FIX: hours on the PLOTTED x-axis (t = 0 at peak permeability). DO and
+% biomass points after these times are removed. inf = no truncation.
+t_DO_end_h  = 121.8;        % DO truncation [h]
+t_bio_end_h = 121.8;        % Biomass truncation [h]
 
 % --- DO physical scale for right-axis normalisation ---
 DO_MAX_MGPL = 8;         % 100 % on the right axis = this many mg/L
@@ -53,12 +55,14 @@ DO_MAX_MGPL = 8;         % 100 % on the right axis = this many mg/L
 % shifted left so the peak falls on t = 0 h.
 SHIFT_TO_PEAK   = true;    % false → original experiment time (old behavior)
 K_SMOOTH_WINDOW = 2000;    % [samples] movmean for k (as in perm_calc_new.m)
-DP_MIN_MBAR     = 1;       % ΔP below this (after offset) → k = NaN (sensor noise)
+% FIX: same threshold as perm_calc_new.m, so both figures put t = 0 at the
+% same peak. ΔP below this (after offset), including negative ΔP → k = NaN.
+DP_MIN_MBAR     = 0.1;
 PEAK_SEARCH_H   = 12;      % [h] peak searched only in the first PEAK_SEARCH_H h
 
-% FIX: true → eventTimes, t_DO_end_h and t_bio_end_h above are entered in
-% ORIGINAL experiment time and get shifted by t_peak automatically.
-% false → you entered them already in the shifted (peak = 0) time.
+% FIX: true → eventTimes above are entered in ORIGINAL experiment time and
+% get shifted by t_peak automatically. false → already in shifted time.
+% (t_DO_end_h and t_bio_end_h are always in plotted, shifted time.)
 USER_TIMES_IN_EXPERIMENT_TIME = true;
 
 % --- Axis-side assignment ---
@@ -200,7 +204,11 @@ if SHIFT_TO_PEAK
                'Lower DP_MIN_MBAR or raise PEAK_SEARCH_H.'], DP_MIN_MBAR, PEAK_SEARCH_H);
     end
     t_peak_h = h_k(iPeak);
-    fprintf('Peak permeability at %.2f h (experiment time) → new t = 0 h\n', t_peak_h);
+    % FIX: print the peak as a clock time too, to compare with imaging times
+    fprintf('Peak permeability at %.2f h (experiment time, %s) → new t = 0 h\n', ...
+        t_peak_h, string(t_k(iPeak)));
+    fprintf('   Sensor log starts %s | imaging starts %s\n', ...
+        string(min([t_q; t_p])), string(t_img(1)));
 
     % Shift every time axis left, then drop everything before the peak
     hours_q   = hours_q   - t_peak_h;
@@ -213,6 +221,14 @@ if SHIFT_TO_PEAK
     hours_p  = hours_p(keep_p);   dp_smooth = dp_smooth(keep_p);
 
     keep_img = hours_img >= 0;
+    % FIX: report what the shift removed, so you can verify that biomass
+    % and DO were cut at the same peak as the hydraulic data
+    fprintf(['   Removed before peak: %d flowrate, %d ΔP, %d imaging points ' ...
+             '(biomass/DO)\n'], sum(~keep_q), sum(~keep_p), sum(~keep_img));
+    if any(keep_img)
+        fprintf('   First kept image: %s (t = %.2f h after peak)\n', ...
+            string(t_img(find(keep_img, 1))), hours_img(find(keep_img, 1)));
+    end
     hours_img       = hours_img(keep_img);
     biomass_occ     = biomass_occ(keep_img);
     biomass_occ_std = biomass_occ_std(keep_img);
@@ -221,11 +237,11 @@ if SHIFT_TO_PEAK
         bulk_DO_std = bulk_DO_std(keep_img);
     end
 
-    % Shift user-entered times (events, truncations) the same way
+    % Shift user-entered event times the same way
     if USER_TIMES_IN_EXPERIMENT_TIME
         eventTimes  = eventTimes  - t_peak_h;
-        t_DO_end_h  = t_DO_end_h  - t_peak_h;   % inf stays inf
-        t_bio_end_h = t_bio_end_h - t_peak_h;
+        % FIX: truncation times are no longer shifted; they are entered
+        % directly in plotted time (see "Data truncation" above).
     end
     dropEv = eventTimes < 0;
     if any(dropEv)
